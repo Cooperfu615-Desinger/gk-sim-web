@@ -1,289 +1,162 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>金庫神偷｜RTP 模擬器（96% 預設版，含道具／曲線破壞者）</title>
-  <style>
-    :root{--bg:#0b1020;--card:#141a2d;--muted:#2a3553;--text:#e8ecf3;--sub:#a9b2c7;--accent:#4cc9f0;--ok:#2dd4bf;--warn:#f59e0b;--bad:#ef4444}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    h1,h2,h3{margin:0 0 .5rem}
-    a{color:var(--accent)}
-    .wrap{max-width:1180px;margin:24px auto;padding:0 16px}
-    .grid{display:grid;gap:16px}
-    .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    label{display:block;font-weight:600;margin-bottom:6px;color:var(--sub)}
-    input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:var(--text)}
-    textarea{min-height:110px;white-space:pre}
-    button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#07111f;background:var(--accent);cursor:pointer}
-    button.secondary{background:#263250;color:var(--text)}
-    button.ghost{background:transparent;color:var(--text);border:1px dashed var(--muted)}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .muted{color:var(--sub)}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#1d2744;color:#b9c4dc;border:1px solid #2b3860}
-    .kpi{font-size:22px;font-weight:800}
-    .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{border-bottom:1px solid var(--muted);padding:6px 8px;text-align:right}
-    .table th:first-child,.table td:first-child{text-align:left}
-    .footnote{font-size:12px;color:#93a0ba}
-    .spacer{height:8px}
-    .hint{font-size:12px;color:#9fb0cf}
-    .error-box{background:#2a1020;border:1px solid #7a294a;color:#ffddea;padding:12px;border-radius:12px;margin:8px 0}
-    .tag{padding:2px 8px;border:1px solid var(--muted);border-radius:999px;color:#c7d3ea;background:#1b223c}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>金庫神偷｜RTP 模擬器（精確自動校準＋進度顯示）</title>
+<style>
+:root{--bg:#0b1020;--card:#141a2d;--muted:#2a3553;--text:#e8ecf3;--sub:#a9b2c7;--accent:#4cc9f0;--ok:#2dd4bf;--warn:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+h1,h2,h3{margin:0 0 .5rem}.wrap{max-width:1180px;margin:24px auto;padding:0 16px}
+.grid{display:grid;gap:16px}.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.row{display:flex;gap:12px;flex-wrap:wrap}label{display:block;font-weight:600;margin-bottom:6px;color:var(--sub)}
+input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:var(--text)}
+textarea{min-height:110px;white-space:pre}button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#07111f;background:var(--accent);cursor:pointer}
+button.secondary{background:#263250;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px dashed var(--muted)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+.muted{color:var(--sub)}.kpi{font-size:22px;font-weight:800}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.table{width:100%;border-collapse:collapse}.table th,.table td{border-bottom:1px solid var(--muted);padding:6px 8px;text-align:right}
+.table th:first-child,.table td:first-child{text-align:left}.tag{padding:2px 8px;border:1px solid var(--muted);border-radius:999px;color:#c7d3ea;background:#1b223c}
+.progress{width:100%;height:10px;background:#223054;border-radius:999px;overflow:hidden}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,#4cc9f0,#2dd4bf);transition:width .2s}
+.small{font-size:12px}
+</style>
 </head>
 <body>
-  <div class="wrap grid g-2">
-    <div class="card">
-      <h1>金庫神偷｜RTP 模擬器（96% 預設展示版）</h1>
-      <p class="muted">此版本一開啟即載入 <b>96%</b> 預設值（含 50 步倍率 / 基準失敗率 / λ₁~₃ / 道具與曲線破壞者 / 上限）。</p>
-      <div class="row">
-        <button id="btnShare" class="secondary">複製目前設定連結</button>
-        <button id="btnReset" class="ghost">重設為 96% 預設</button>
-        <button id="btnReadme" class="secondary">開啟使用說明 (README)</button>
-      </div>
-      <div id="errBox" class="error-box" style="display:none"></div>
+<div class="wrap grid g-2">
+  <div class="card">
+    <h1>金庫神偷｜RTP 模擬器（精確自動校準＋進度顯示）</h1>
+    <p class="muted">此版內建 <b>96%</b> 預設值；可執行<b>精確多參數自動校準</b>並顯示進度。</p>
+    <div class="row">
+      <button id="btnShare" class="secondary">複製目前設定連結</button>
+      <button id="btnReset" class="ghost">重設為 96% 預設</button>
+      <button id="btnReadme" class="secondary">開啟使用說明 (README)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>顯示與基準</h3>
+    <div class="row">
+      <span class="tag">RTP 以百分比（兩位）</span>
+      <span class="tag">Mean/Std 以金額</span>
+      <span class="tag">Step50 成功率預設 70%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>輸入設定（基礎＋上限）</h2>
+    <div class="grid g-2">
+      <div><label>目標 RTP</label><input id="inpTarget" type="number" step="0.0001" value="0.96" /></div>
+      <div><label>Step50 成功率（0~1）</label><input id="inpS50" type="number" step="0.01" min="0" max="1" value="0.7" /></div>
+      <div><label>金額上限（$）</label><input id="inpMoneyCap" type="number" step="50" value="5000" /></div>
+      <div><label>倍率上限（x）</label><input id="inpMultCap" type="number" step="50" value="2000" /></div>
+      <div><label>下注額上限係數 α</label><input id="inpAlphaByBet" type="number" step="0.05" value="0.30" /></div>
+    </div>
+    <div class="spacer"></div>
+    <label>50 步倍率（逗號或換行分隔）</label>
+    <textarea id="inpRewards" class="mono"></textarea>
+    <div class="spacer"></div>
+    <label>基準失敗率 %（前 49 步；第 50 步由成功率推），逗號或換行</label>
+    <textarea id="inpBaseFail" class="mono"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="btnCalibrate">自動校準（基礎＋上限）</button>
+      <button id="btnExportSpec" class="secondary">匯出規格 CSV</button>
+      <button id="btnExportAlerts" class="secondary">匯出警戒 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>進階模擬（道具／曲線破壞者）</h2>
+    <div class="grid g-3">
+      <div><label>下注額（$）</label><input id="inpBet" type="number" step="0.1" value="1.00" /></div>
+      <div><label>模擬局數</label><input id="inpSims" type="number" step="1000" value="200000" /></div>
+      <div></div>
+      <div><label>λ1（步 1–30）</label><input id="inpLam1" type="number" step="0.01" value="1.50" /></div>
+      <div><label>λ2（步 31–40）</label><input id="inpLam2" type="number" step="0.01" value="2.00" /></div>
+      <div><label>λ3（步 41–50）</label><input id="inpLam3" type="number" step="0.01" value="5.00" /></div>
     </div>
 
-    <div class="card">
-      <h3>關於</h3>
-      <ul class="muted">
-        <li>步數固定 50；Step50 成功率預設 70%</li>
-        <li>風險縮放：<span class="pill">odds-scaling</span>（λ₁/λ₂/λ₃ 區段縮放）</li>
-        <li>校準目標：最佳停步的模擬 RTP ≈ <b>96%</b></li>
-      </ul>
-      <div class="row">
-        <span class="tag">RTP 以百分比顯示（兩位小數）</span>
-        <span class="tag">Mean / Std 以金額顯示</span>
-      </div>
+    <div class="spacer"></div>
+    <h3>道具 / 破壞者 參數（展示版強度＋分級價格）</h3>
+    <div class="grid g-3">
+      <div><label>高級(絕佳) 機率</label><input id="inpCanvasProb" type="number" step="0.01" value="0.10" /></div>
+      <div><label>高級(絕佳) 加成 (x)</label><input id="inpCanvasBonus" type="number" step="0.1" value="1.2" /></div>
+      <div></div>
+      <div><label>華麗(地標) 機率</label><input id="inpLandmarkProb" type="number" step="0.001" value="0.015" /></div>
+      <div><label>華麗(地標) 失敗率</label><input id="inpLandmarkFail" type="number" step="0.01" value="0.80" /></div>
+      <div><label>華麗(地標) 獎勵 (x)</label><input id="inpLandmarkBonus" type="number" step="10" value="800" /></div>
+      <div><label>防爆盾(把風) 成本 ×bet</label><input id="inpLookoutCost" type="number" step="0.05" value="2.0" /></div>
+      <div><label>聽診器(無人機) 成本 ×bet</label><input id="inpDroneCost" type="number" step="0.05" value="1.5" /></div>
+      <div><label>精密工具(噴頭) 成本 ×bet</label><input id="inpNozzleCost" type="number" step="0.05" value="1.0" /></div>
+      <div><label>破解器(模版) 成本 ×bet</label><input id="inpTemplateCost" type="number" step="0.05" value="0.3" /></div>
+      <div><label>後段 +絕對風險 (40–49)</label><input id="inpPost40Bump" type="number" step="0.01" value="0.08" /></div>
+      <div><label>最小失敗率 (≥45)</label><input id="inpMinFailAfter45" type="number" step="0.01" value="0.50" /></div>
     </div>
 
-    <!-- 左：基礎輸入區 -->
-    <div class="card">
-      <h2>輸入設定（基礎＋上限）</h2>
-      <div class="grid g-2">
-        <div>
-          <label>目標 RTP</label>
-          <input id="inpTarget" type="number" step="0.0001" min="0" max="5" value="0.96" />
-        </div>
-        <div>
-          <label>Step50 成功率（0~1）</label>
-          <input id="inpS50" type="number" step="0.01" min="0" max="1" value="0.7" />
-        </div>
-        <div>
-          <label>金額上限（$）</label>
-          <input id="inpMoneyCap" type="number" step="50" value="5000" />
-        </div>
-        <div>
-          <label>倍率上限（x）</label>
-          <input id="inpMultCap" type="number" step="50" value="2000" />
-        </div>
-        <div>
-          <label>下注額上限係數 α</label>
-          <input id="inpAlphaByBet" type="number" step="0.05" value="0.30" />
-        </div>
-      </div>
-      <div class="spacer"></div>
-      <label>50 步倍率（逗號或換行分隔）</label>
-      <textarea id="inpRewards" class="mono"></textarea>
-      <div class="spacer"></div>
-      <label>基準失敗率 %（前 49 步；第 50 步由成功率推），逗號或換行</label>
-      <textarea id="inpBaseFail" class="mono"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button id="btnCalibrate">自動校準（基礎＋上限）</button>
-        <button id="btnExportSpec" class="secondary">匯出規格 CSV</button>
-        <button id="btnExportAlerts" class="secondary">匯出警戒 CSV</button>
-      </div>
-      <p class="hint">等效倍率上限＝min(倍率上限, 金額上限 / bet, α × 金額上限 / bet)。</p>
+    <div class="row" style="margin-top:10px">
+      <button id="btnRunAdv">執行進階模擬</button>
+      <button id="btnCalibAdv" class="secondary">進階自動校準到 96%（精確）</button>
+      <label style="display:flex;align-items:center;gap:6px" class="small"><input type="checkbox" id="chkAlsoTuneTail" checked />同時調：尾段下限／後段風險／倍率縮放／基準風險縮放</label>
     </div>
+    <div class="row" id="advResult" style="margin-top:12px"></div>
 
-    <!-- 右：進階模擬 -->
-    <div class="card">
-      <h2>進階模擬（道具／曲線破壞者）</h2>
-      <div class="grid g-3">
-        <div>
-          <label>下注額（$）</label>
-          <input id="inpBet" type="number" step="0.1" value="1.00" />
-        </div>
-        <div>
-          <label>模擬局數</label>
-          <input id="inpSims" type="number" step="1000" value="200000" />
-        </div>
-        <div></div>
-        <div>
-          <label>λ1（步 1–30）</label>
-          <input id="inpLam1" type="number" step="0.01" value="1.50" />
-        </div>
-        <div>
-          <label>λ2（步 31–40）</label>
-          <input id="inpLam2" type="number" step="0.01" value="2.00" />
-        </div>
-        <div>
-          <label>λ3（步 41–50）</label>
-          <input id="inpLam3" type="number" step="0.01" value="5.00" />
-        </div>
-      </div>
-
-      <div class="spacer"></div>
-      <h3>道具 / 破壞者 參數（展示版強度＋分級價格）</h3>
-      <div class="grid g-3">
-        <div>
-          <label>高級(絕佳) 機率</label>
-          <input id="inpCanvasProb" type="number" step="0.01" value="0.10" />
-        </div>
-        <div>
-          <label>高級(絕佳) 加成 (x)</label>
-          <input id="inpCanvasBonus" type="number" step="0.1" value="1.2" />
-        </div>
-        <div></div>
-        <div>
-          <label>華麗(地標) 機率</label>
-          <input id="inpLandmarkProb" type="number" step="0.001" value="0.015" />
-        </div>
-        <div>
-          <label>華麗(地標) 失敗率</label>
-          <input id="inpLandmarkFail" type="number" step="0.01" value="0.80" />
-        </div>
-        <div>
-          <label>華麗(地標) 獎勵 (x)</label>
-          <input id="inpLandmarkBonus" type="number" step="10" value="800" />
-        </div>
-        <div>
-          <label>防爆盾(把風) 成本 ×bet</label>
-          <input id="inpLookoutCost" type="number" step="0.05" value="2.0" />
-        </div>
-        <div>
-          <label>聽診器(無人機) 成本 ×bet</label>
-          <input id="inpDroneCost" type="number" step="0.05" value="1.5" />
-        </div>
-        <div>
-          <label>精密工具(噴頭) 成本 ×bet</label>
-          <input id="inpNozzleCost" type="number" step="0.05" value="1.0" />
-        </div>
-        <div>
-          <label>破解器(模版) 成本 ×bet</label>
-          <input id="inpTemplateCost" type="number" step="0.05" value="0.3" />
-        </div>
-        <div>
-          <label>後段 +絕對風險 (40–49)</label>
-          <input id="inpPost40Bump" type="number" step="0.01" value="0.08" />
-        </div>
-        <div>
-          <label>最小失敗率 (≥45)</label>
-          <input id="inpMinFailAfter45" type="number" step="0.01" value="0.50" />
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="btnRunAdv">執行進階模擬</button>
-        <button id="btnCalibAdv" class="secondary">進階自動校準到 96%</button>
-        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="chkAutoTuneOnLoad" checked />初次載入自動微調至 96%</label>
-      </div>
-      <div id="advResult" class="row" style="margin-top:12px"></div>
-      <p class="footnote">提示：把任一數值設為 0 即可快速停用該功能（例如華麗(地標) 機率=0）。</p>
-    </div>
-
-    <!-- 下：結果與表格 -->
-    <div class="card" style="grid-column:1 / -1">
-      <h2>校準結果（基礎＋上限）</h2>
-      <div id="calibKPI" class="row" style="gap:24px"></div>
-      <div class="spacer"></div>
-      <div style="overflow:auto">
-        <table class="table mono" id="tblSpec"></table>
+    <div id="calibProgressBox" style="margin-top:8px;display:none">
+      <div class="progress"><div id="calibBar"></div></div>
+      <div class="small muted" id="calibMsg">準備中...</div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnCancel" class="ghost">取消校準</button>
       </div>
     </div>
   </div>
 
-<script>
-// ---------- Safe DOM helpers ----------
-const $ = (id)=>document.getElementById(id)
-function getEl(id){ const el=document.getElementById(id); if(!el){ console.error(`[DOM] Missing #${id}`); } return el }
-function getVal(id, def=null){ const el=getEl(id); return (el && 'value' in el)? el.value : def }
-function setVal(id, v){ const el=getEl(id); if(el && 'value' in el){ el.value=v } }
-function setHTML(id, html){ const el=getEl(id); if(el){ el.innerHTML=html } }
-function showError(msg){ const box=getEl('errBox'); if(box){ box.style.display='block'; box.textContent=msg } }
+  <div class="card" style="grid-column:1 / -1">
+    <h2>校準結果（基礎＋上限）</h2>
+    <div id="calibKPI" class="row" style="gap:24px"></div>
+    <div class="spacer"></div>
+    <div style="overflow:auto">
+      <table class="table mono" id="tblSpec"></table>
+    </div>
+  </div>
+</div>
 
-// ---------- Parsers & math ----------
-const parseList = (txt)=> String(txt||'').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).map(Number)
-const clamp = (x,a,b)=> Math.max(a, Math.min(b, x))
-function oddsScale(p, lam){ p = clamp(p,0,1-1e-12); const odds=p/(1-p); const o2=lam*odds; return clamp(o2/(1+o2),0,1) }
+<script>
+// == utils ==
+const $ = (id)=>document.getElementById(id)
+function getVal(id, def=null){ const el=$(id); return el && 'value' in el? el.value: def }
+function setVal(id, v){ const el=$(id); if(el && 'value' in el) el.value=v }
+function setHTML(id, html){ const el=$(id); if(el) el.innerHTML=html }
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x))
+const parseList=(t)=> String(t||'').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).map(Number)
+function fmtPct(x){ return (100*Number(x)).toFixed(2)+'%' }
+function fmtMoney(x){ return '$'+Number(x).toFixed(2) }
+function toCSV(rows){ return rows.map(r=> r.map(v=> String(v)).join(',')).join('\n') }
+function download(name, text){ const blob=new Blob([text],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000) }
+function oddsScale(p, lam){ p=clamp(p,0,1-1e-12); const odds=p/(1-p); const o2=lam*odds; return clamp(o2/(1+o2),0,1) }
 function afterProbs(pFail){ const out=[]; let acc=1; for(const pf of pFail){ acc*=(1-pf); out.push(acc) } return out }
 function evCurve(reward, pFail, capMult){ const after=afterProbs(pFail); const rm=reward.map(r=> capMult? Math.min(r,capMult): r); return {ev: rm.map((r,i)=> r*after[i]), after} }
 function argmax(arr){ let bi=0,bv=-Infinity; arr.forEach((v,i)=>{ if(v>bv){bv=v;bi=i} }); return bi }
-function toCSV(rows){ return rows.map(r=> r.map(v=> (typeof v==="number"? String(v): String(v))).join(",")).join("\n") }
-function download(name, text){ const blob=new Blob([text],{type:"text/csv;charset=utf-8"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000) }
-function fmt(x){ return Number(x).toFixed(6) }
-function fmtPct(x){ return (100*Number(x)).toFixed(2) + "%" }
-function fmtMoney(x){ return "$" + Number(x).toFixed(2) }
 
-// ---------- Defaults (96% preset) ----------
-// * 50 步倍率：下修尾段肥厚，避免爆率過高
-const defaultRewards=[
-  1.05,1.12,1.20,1.30,1.42,1.56,1.72,1.90,2.10,2.35,
-  2.60,2.90,3.25,3.65,4.10,4.60,5.15,5.75,6.40,8.00,
-  9.00,10.20,11.50,12.90,14.40,16.00,17.70,19.50,21.40,30.00,
-  36.00,42.00,48.00,54.00,60.00,70.00,80.00,90.00,100.00,180.00,
-  240.00,320.00,420.00,520.00,800.00,1200.00,2000.00,4000.00,8000.00,16000.00
-];
-// * 基準失敗率（%）：前段略低，中段、尾段逐步升高
-const defaultBaseFailPct=[
-  0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,1.00,1.10,
-  1.30,1.50,1.70,1.90,2.20,2.50,2.80,3.10,3.40,3.80,
-  4.20,4.80,5.40,6.00,6.60,7.30,8.10,9.00,10.00,11.00,
-  12.50,14.00,16.00,18.00,20.00,22.00,24.00,26.00,28.00,32.00,
-  36.00,40.00,44.00,48.00,52.00,56.00,60.00,65.00,70.00
-]; // 49 entries
-// * caps：較保守
-const defaultMoneyCap=5000;
-const defaultMultCap=2000;
-const defaultAlpha=0.30;
-// * lambda：作為起點，載入時會自動微調到目標 96%
+// defaults
+const defaultRewards=[1.05,1.12,1.20,1.30,1.42,1.56,1.72,1.90,2.10,2.35,2.60,2.90,3.25,3.65,4.10,4.60,5.15,5.75,6.40,8.00,9.00,10.20,11.50,12.90,14.40,16.00,17.70,19.50,21.40,30.00,36.00,42.00,48.00,54.00,60.00,70.00,80.00,90.00,100.00,180.00,240.00,320.00,420.00,520.00,800.00,1200.00,2000.00,4000.00,8000.00,16000.00];
+const defaultBaseFailPct=[0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,1.00,1.10,1.30,1.50,1.70,1.90,2.20,2.50,2.80,3.10,3.40,3.80,4.20,4.80,5.40,6.00,6.60,7.30,8.10,9.00,10.00,11.00,12.50,14.00,16.00,18.00,20.00,22.00,24.00,26.00,28.00,32.00,36.00,40.00,44.00,48.00,52.00,56.00,60.00,65.00,70.00];
+const defaultMoneyCap=5000, defaultMultCap=2000, defaultAlpha=0.30;
 const defaultLam=[1.50,2.00,5.00];
-// * items：展示版強度＋分級價格
-const defaultItems={
-  canvas_prob:0.10, canvas_bonus:1.2,
-  landmark_prob:0.015, landmark_fail:0.80, landmark_bonus:800,
-  lookout_cost_mult:2.0, // 防爆盾(把風)：最貴
-  drone_cost_mult:1.5,   // 聽診器(無人機)：次貴（保證成功）
-  nozzle_cost_mult:1.0,  // 精密工具(噴頭)：基準
-  template_cost_mult:0.3,// 破解器(模版)：最便宜（0.x 倍）
-  post40_abs_bump:0.08,  // 後段風險加值
-  min_fail_after_45:0.50 // 尾段風險底線
-};
+const defaultItems={ canvas_prob:0.10, canvas_bonus:1.2, landmark_prob:0.015, landmark_fail:0.80, landmark_bonus:800, lookout_cost_mult:2.0, drone_cost_mult:1.5, nozzle_cost_mult:1.0, template_cost_mult:0.3, post40_abs_bump:0.08, min_fail_after_45:0.50 };
 
 function loadDefaults96(){
-  setVal('inpTarget', 0.96);
-  setVal('inpS50', 0.70);
-  setVal('inpMoneyCap', defaultMoneyCap);
-  setVal('inpMultCap', defaultMultCap);
-  setVal('inpAlphaByBet', defaultAlpha);
-  setVal('inpRewards', defaultRewards.join(','));
-  setVal('inpBaseFail', defaultBaseFailPct.join(','));
-  setVal('inpLam1', defaultLam[0]);
-  setVal('inpLam2', defaultLam[1]);
-  setVal('inpLam3', defaultLam[2]);
-  setVal('inpBet', 1.00);
-  setVal('inpSims', 200000);
-
-  setVal('inpCanvasProb', defaultItems.canvas_prob);
-  setVal('inpCanvasBonus', defaultItems.canvas_bonus);
-  setVal('inpLandmarkProb', defaultItems.landmark_prob);
-  setVal('inpLandmarkFail', defaultItems.landmark_fail);
-  setVal('inpLandmarkBonus', defaultItems.landmark_bonus);
-  setVal('inpLookoutCost', defaultItems.lookout_cost_mult);
-  setVal('inpDroneCost', defaultItems.drone_cost_mult);
-  setVal('inpNozzleCost', defaultItems.nozzle_cost_mult);
-  setVal('inpTemplateCost', defaultItems.template_cost_mult);
-  setVal('inpPost40Bump', defaultItems.post40_abs_bump);
-  setVal('inpMinFailAfter45', defaultItems.min_fail_after_45);
+  setVal('inpTarget',0.96); setVal('inpS50',0.70);
+  setVal('inpMoneyCap',defaultMoneyCap); setVal('inpMultCap',defaultMultCap); setVal('inpAlphaByBet',defaultAlpha);
+  setVal('inpRewards',defaultRewards.join(',')); setVal('inpBaseFail',defaultBaseFailPct.join(','));
+  setVal('inpLam1',defaultLam[0]); setVal('inpLam2',defaultLam[1]); setVal('inpLam3',defaultLam[2]);
+  setVal('inpBet',1.00); setVal('inpSims',200000);
+  setVal('inpCanvasProb',defaultItems.canvas_prob); setVal('inpCanvasBonus',defaultItems.canvas_bonus);
+  setVal('inpLandmarkProb',defaultItems.landmark_prob); setVal('inpLandmarkFail',defaultItems.landmark_fail); setVal('inpLandmarkBonus',defaultItems.landmark_bonus);
+  setVal('inpLookoutCost',defaultItems.lookout_cost_mult); setVal('inpDroneCost',defaultItems.drone_cost_mult); setVal('inpNozzleCost',defaultItems.nozzle_cost_mult); setVal('inpTemplateCost',defaultItems.template_cost_mult);
+  setVal('inpPost40Bump',defaultItems.post40_abs_bump); setVal('inpMinFailAfter45',defaultItems.min_fail_after_45);
 }
 
-// ---------- Calibration (base + caps) ----------
+// base spec calibration
 let lastCalib=null
 function calibrate(){
   const target=Number(getVal('inpTarget',0.96))||0.96
@@ -291,12 +164,11 @@ function calibrate(){
   const baseFailPct=parseList(getVal('inpBaseFail',''))
   const s50=clamp(Number(getVal('inpS50',0.7))||0.7,0,1)
   if(rewards.length!==50){ alert('倍率需要 50 個數值'); return }
-  if(baseFailPct.length!==49){ alert('基準失敗率需 49 個（第 50 步由成功率推）'); return }
+  if(baseFailPct.length!==49){ alert('基準失敗率需 49 個'); return }
   const baseFail=baseFailPct.map(x=>x/100); baseFail.push(1-s50)
   const moneyCap=Number(getVal('inpMoneyCap',defaultMoneyCap))||defaultMoneyCap
   const multCap=Number(getVal('inpMultCap',defaultMultCap))||defaultMultCap
   const alpha=Number(getVal('inpAlphaByBet',defaultAlpha))||defaultAlpha
-  // 以 bet=1 計算等效上限（顯示用）
   const capMultEffective=Math.min(multCap, moneyCap/1.0, alpha*moneyCap/1.0)
   let lo=0.5,hi=25.0,best={gap:1e9,lam:null,p:null,ev:null,after:null}
   for(let i=0;i<40;i++){
@@ -309,25 +181,22 @@ function calibrate(){
   }
   const bestStep=argmax(best.ev)+1
   setHTML('calibKPI',`
-    <div><div class="muted">lambda*</div><div class="kpi">${fmt(best.lam)}</div></div>
+    <div><div class="muted">lambda*</div><div class="kpi">${best.lam.toFixed(6)}</div></div>
     <div><div class="muted">最佳步</div><div class="kpi">${bestStep}</div></div>
-    <div><div class="muted">Max EV</div><div class="kpi">${fmt(Math.max(...best.ev))}</div></div>
-    <div><div class="muted">有效倍率上限</div><div class="kpi">${fmt(capMultEffective)}x</div></div>`)
+    <div><div class="muted">Max EV</div><div class="kpi">${Math.max(...best.ev).toFixed(6)}</div></div>
+    <div><div class="muted">有效倍率上限</div><div class="kpi">${capMultEffective.toFixed(2)}x</div></div>`)
   const rows=[[ 'Step','Reward','FailProb','Survival','ReachProb(before)','AfterProb(through)','EV_at_step','Alert(>0.96)' ]]
   for(let k=0;k<50;k++){
     const reach=k===0?1.0:best.after[k-1]
-    rows.push([k+1,fmt(rewards[k]),fmt(best.p[k]),fmt(1-best.p[k]),fmt(reach),fmt(best.after[k]),fmt(best.ev[k]), best.ev[k]>target?1:0])
+    rows.push([k+1,rewards[k].toFixed(6),best.p[k].toFixed(6),(1-best.p[k]).toFixed(6),reach.toFixed(6),best.after[k].toFixed(6),best.ev[k].toFixed(6), (best.ev[k]>target)?1:0])
   }
-  const html=rows.map((r,i)=>'<tr>'+r.map(c=>(i?'<td>':'<th>')+c+(i?'</td>':'</th>')).join('')+'</tr>').join('')
-  setHTML('tblSpec', html)
+  setHTML('tblSpec', rows.map((r,i)=>'<tr>'+r.map(c=>(i?'<td>':'<th>')+c+(i?'</td>':'</th>')).join('')+'</tr>').join(''))
   lastCalib={rewards,baseFail,target,moneyCap,multCap,alpha,capMultEffective,...best}
 }
-
-// ---------- CSV Exports ----------
-function exportSpec(){ if(!lastCalib){ alert('請先執行自動校準'); return } const {rewards,p,after,ev,target}=lastCalib; const rows=[[ 'Step','RewardMultiplier',`ScaledFailProb(odds,lambda=${fmt(lastCalib.lam)})`,'ScaledSurvivalProb','ReachProb(before step)','AfterProb(through step)','EV_at_step(with caps)','Alert(>target)']]; for(let k=0;k<50;k++){ const reach=k===0?1.0:after[k-1]; rows.push([k+1,rewards[k],p[k],1-p[k],reach,after[k],ev[k],ev[k]>target?1:0]) } download('VaultHeist_Probability_Spec_withCaps.csv', toCSV(rows)) }
+function exportSpec(){ if(!lastCalib){ alert('請先執行自動校準'); return } const {rewards,p,after,ev,target}=lastCalib; const rows=[[ 'Step','RewardMultiplier',`ScaledFailProb(odds,lambda=${lastCalib.lam})`,'ScaledSurvivalProb','ReachProb(before step)','AfterProb(through step)','EV_at_step(with caps)','Alert(>target)']]; for(let k=0;k<50;k++){ const reach=k===0?1.0:after[k-1]; rows.push([k+1,rewards[k],p[k],1-p[k],reach,after[k],ev[k],ev[k]>target?1:0]) } download('VaultHeist_Probability_Spec_withCaps.csv', toCSV(rows)) }
 function exportAlerts(){ if(!lastCalib){ alert('請先執行自動校準'); return } const {rewards,ev,target}=lastCalib; const rows=[[ 'Step','RewardMultiplier','EV_at_step(with caps)' ]]; ev.forEach((v,i)=>{ if(v>target) rows.push([i+1,rewards[i],v]) }); download('VaultHeist_Alert_Report.csv', toCSV(rows)) }
 
-// ---------- Advanced (items + curve breakers) ----------
+// items + simulation
 function getCfg(){ return {
   canvas_prob:Number(getVal('inpCanvasProb',defaultItems.canvas_prob))||0,
   canvas_bonus:Number(getVal('inpCanvasBonus',defaultItems.canvas_bonus))||0,
@@ -341,39 +210,25 @@ function getCfg(){ return {
   money_cap:Number(getVal('inpMoneyCap',defaultMoneyCap))||defaultMoneyCap,
   mult_cap:Number(getVal('inpMultCap',defaultMultCap))||defaultMultCap,
   alpha_by_bet:Number(getVal('inpAlphaByBet',defaultAlpha))||defaultAlpha,
+  post40_abs_bump:Number(getVal('inpPost40Bump',defaultItems.post40_abs_bump))||defaultItems.post40_abs_bump,
   min_fail_after_45:Number(getVal('inpMinFailAfter45',defaultItems.min_fail_after_45))||defaultItems.min_fail_after_45,
-  post40_abs_bump:Number(getVal('inpPost40Bump',defaultItems.post40_abs_bump))||defaultItems.post40_abs_bump
+  reward_scale:1.0, base_fail_scale:1.0
 }}
-function applyZoneLambda(baseFail,lam1,lam2,lam3){
-  const cfg=getCfg();
-  const p=baseFail.slice();
-  for(let i=39;i<=48;i++) p[i]=clamp(p[i]+cfg.post40_abs_bump,0,1); // 40~49 索引
-  for(let i=0;i<50;i++){
-    const lam=i<30?lam1:(i<40?lam2:lam3);
-    p[i]=oddsScale(p[i],lam)
-  }
+function applyZoneLambda(baseFail,lam1,lam2,lam3,cfg){
+  const p=baseFail.map(x=> clamp(x*cfg.base_fail_scale,0,1));
+  for(let i=39;i<=48;i++) p[i]=clamp(p[i]+cfg.post40_abs_bump,0,1);
+  for(let i=0;i<50;i++){ const lam=i<30?lam1:(i<40?lam2:lam3); p[i]=oddsScale(p[i],lam) }
   for(let i=44;i<=48;i++) p[i]=Math.max(p[i],cfg.min_fail_after_45);
   return p
 }
-function effectiveMult(mult,bet){
-  const cfg=getCfg();
-  const caps=[cfg.money_cap/bet, cfg.mult_cap, cfg.alpha_by_bet*(cfg.money_cap/bet)];
-  return Math.min(mult,...caps)
-}
-function bestStopNoItems(pFail,bet){
-  const cap=effectiveMult(1e9,bet);
-  const {ev}=evCurve(parseList(getVal('inpRewards','')),pFail,cap);
-  return argmax(ev)+1
-}
-function simulateRound(bet,pFail,rng){
-  const cfg=getCfg();
-  let lookout=1,drone=1,nozzle=1,template=1;
-  let cost=0,step=0,alive=true,mult=1.0,bonus=0.0,droneBuf=0;
-  const rewards=parseList(getVal('inpRewards',''));
-  const stop=bestStopNoItems(pFail,bet);
+function effectiveMult(mult,bet,cfg){ const caps=[cfg.money_cap/bet, cfg.mult_cap, cfg.alpha_by_bet*(cfg.money_cap/bet)]; return Math.min(mult,...caps) }
+function bestStopNoItems(rewards,pFail,bet,cfg){ const cap=effectiveMult(1e9,bet,cfg); const {ev}=evCurve(rewards,pFail,cap); return argmax(ev)+1 }
+function simulateRound(bet,rewards,pFail,rng,cfg){
+  let lookout=1,drone=1,nozzle=1,template=1; let cost=0,step=0,alive=true,mult=1.0,bonus=0.0,droneBuf=0;
+  const stop=bestStopNoItems(rewards,pFail,bet,cfg);
   while(alive&&step<stop){
     const next=step+1;
-    if(template>0&&next===35){ template--; cost+=cfg.template_cost_mult*bet; step=step+5; if(step>50) step=50; mult=rewards[step-1]||mult; continue }
+    if(template>0&&next===35){ template--; cost+=cfg.template_cost_mult*bet; step=Math.min(50, step+5); mult=rewards[step-1]||mult; continue }
     const isCanvas=(next<=35)&&(rng()<cfg.canvas_prob);
     const isLandmark=(next>=28&&next<=44)&&(rng()<cfg.landmark_prob);
     if(drone>0&&(next===41||next===43||next===45)&&!isLandmark){ droneBuf=1; drone--; cost+=cfg.drone_cost_mult*bet }
@@ -384,144 +239,116 @@ function simulateRound(bet,pFail,rng){
       if(lookout>0){lookout--; cost+=cfg.lookout_cost_mult*bet}
       else { alive=false; break }
     } else {
-      step=next;
-      mult=rewards[step-1];
+      step=next; mult=rewards[step-1]*cfg.reward_scale;
       if(isCanvas) mult+=cfg.canvas_bonus;
       if(isLandmark) bonus+=cfg.landmark_bonus;
       if(nozzle>0&&step===45&&!isLandmark){ nozzle--; cost+=cfg.nozzle_cost_mult*bet; mult*=2.0 }
     }
   }
   let payout=0;
-  if(alive&&step>=1){
-    let total=mult+bonus;
-    total=effectiveMult(total,bet);
-    payout=total*bet
-  }
+  if(alive&&step>=1){ let total=mult+bonus; total=effectiveMult(total,bet,cfg); payout=total*bet }
   return Math.max(0,payout-cost)
 }
-function runAdvanced(){
-  try{
-    const bet=Number(getVal('inpBet',1))||1;
-    const sims=Number(getVal('inpSims',20000))||20000;
-    const lam1=Number(getVal('inpLam1',defaultLam[0]))||defaultLam[0];
-    const lam2=Number(getVal('inpLam2',defaultLam[1]))||defaultLam[1];
-    const lam3=Number(getVal('inpLam3',defaultLam[2]))||defaultLam[2];
-    const rewards=parseList(getVal('inpRewards',''));
-    const baseFailPct=parseList(getVal('inpBaseFail',''));
-    const s50=clamp(Number(getVal('inpS50',0.7))||0.7,0,1);
-    if(rewards.length!==50||baseFailPct.length!==49){ alert('請先正確填入倍率與失敗率'); return }
-    const baseFail=baseFailPct.map(x=>x/100); baseFail.push(1-s50);
-    const pFail=applyZoneLambda(baseFail,lam1,lam2,lam3);
-    let sum=0,sum2=0; const rng=Math.random;
-    for(let i=0;i<sims;i++){ const v=simulateRound(bet,pFail,rng); sum+=v; sum2+=v*v }
-    const mean=sum/sims;
-    const std=Math.sqrt(Math.max(0,sum2/sims-mean*mean));
-    const rtp=(sum/(bet*sims));
-    const cls=(rtp>0.97||rtp<0.95)?'warn':'ok';
-    setHTML('advResult',`
-      <div><div class="muted">RTP</div><div class="kpi ${cls}">${fmtPct(rtp)}</div></div>
-      <div><div class="muted">Mean payout</div><div class="kpi">${fmtMoney(mean)}</div></div>
-      <div><div class="muted">Std payout</div><div class="kpi">${fmtMoney(std)}</div></div>`)
-    return rtp
-  }catch(err){ console.error(err); alert('進階模擬執行時發生錯誤，請檢查輸入或參數。') }
+function simulateMany(params){
+  const {bet,sims,rewards,baseFail,lam1,lam2,lam3,cfg}=params;
+  const pFail=applyZoneLambda(baseFail,lam1,lam2,lam3,cfg);
+  let sum=0,sum2=0; const rng=Math.random;
+  for(let i=0;i<sims;i++){ const v=simulateRound(bet,rewards,pFail,rng,cfg); sum+=v; sum2+=v*v }
+  const mean=sum/sims; const std=Math.sqrt(Math.max(0,sum2/sims-mean*mean)); const rtp=sum/(bet*sims);
+  return {rtp,mean,std}
 }
-function runOnceRTP(bet,lam1,lam2,lam3,sims){
+function runAdvanced(){
+  const bet=Number(getVal('inpBet',1))||1;
+  const sims=Number(getVal('inpSims',20000))||20000;
+  const lam1=Number(getVal('inpLam1',defaultLam[0]))||defaultLam[0];
+  const lam2=Number(getVal('inpLam2',defaultLam[1]))||defaultLam[1];
+  const lam3=Number(getVal('inpLam3',defaultLam[2]))||defaultLam[2];
   const rewards=parseList(getVal('inpRewards',''));
   const baseFailPct=parseList(getVal('inpBaseFail',''));
   const s50=clamp(Number(getVal('inpS50',0.7))||0.7,0,1);
+  if(rewards.length!==50||baseFailPct.length!==49){ alert('請先正確填入倍率與失敗率'); return }
   const baseFail=baseFailPct.map(x=>x/100); baseFail.push(1-s50);
-  const pFail=applyZoneLambda(baseFail,lam1,lam2,lam3);
-  let sum=0; const rng=Math.random;
-  for(let i=0;i<sims;i++) sum+=simulateRound(bet,pFail,rng);
-  return sum/(bet*sims)
-}
-function calibrateAdvanced(){
-  const bet=Number(getVal('inpBet',1))||1;
-  const simsCoarse=50000;
-  const simsFine=100000;
-  const target=Number(getVal('inpTarget',0.96))||0.96;
-  // 搜索範圍根據預設值擴散
-  const grid1=[1.0,1.25,1.5,1.75,2.0];
-  const grid2=[1.5,1.75,2.0,2.25,2.5];
-  const grid3=[3.0,4.0,5.0,6.0,7.0];
-  let best={gap:1e9,l1:Number(getVal('inpLam1',defaultLam[0])),l2:Number(getVal('inpLam2',defaultLam[1])),l3:Number(getVal('inpLam3',defaultLam[2])),rtp:null};
-  for(const l1 of grid1){ for(const l2 of grid2){ for(const l3 of grid3){
-    const r=runOnceRTP(bet,l1,l2,l3,simsCoarse); const g=Math.abs(r-target);
-    if(g<best.gap) best={gap:g,l1,l2,l3,rtp:r}
-  } } }
-  function neigh(x){ return [x*0.9,x*0.95,x,x*1.05,x*1.1] }
-  for(let iter=0; iter<2; iter++){
-    for(const key of ['l1','l2','l3']){
-      const cand=neigh(best[key]);
-      for(const v of cand){
-        const r=runOnceRTP(bet, key==='l1'?v:best.l1, key==='l2'?v:best.l2, key==='l3'?v:best.l3, simsFine);
-        const g=Math.abs(r-target);
-        if(g<best.gap) best={gap:g,l1:(key==='l1'?v:best.l1),l2:(key==='l2'?v:best.l2),l3:(key==='l3'?v:best.l3),rtp:r}
-      }
-    }
-  }
-  setVal('inpLam1',best.l1.toFixed(4));
-  setVal('inpLam2',best.l2.toFixed(4));
-  setVal('inpLam3',best.l3.toFixed(4));
+  const res=simulateMany({bet,sims,rewards,baseFail,lam1,lam2,lam3,cfg:getCfg()});
+  const cls=(res.rtp>0.97||res.rtp<0.95)?'warn':'ok';
   setHTML('advResult',`
-    <div><div class="muted">Calibrated λ</div><div class="kpi">${best.l1.toFixed(3)} / ${best.l2.toFixed(3)} / ${best.l3.toFixed(3)}</div></div>
-    <div><div class="muted">RTP</div><div class="kpi">${fmtPct(best.rtp)}</div></div>`)
-  return best
+    <div><div class="muted">RTP</div><div class="kpi ${cls}">${fmtPct(res.rtp)}</div></div>
+    <div><div class="muted">Mean payout</div><div class="kpi">${fmtMoney(res.mean)}</div></div>
+    <div><div class="muted">Std payout</div><div class="kpi">${fmtMoney(res.std)}</div></div>`);
+  return res;
 }
 
-// ---------- Share URL & README ----------
-function syncToURL(){
-  const params=new URLSearchParams();
-  ['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpAlphaByBet','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=> params.set(id, getVal(id,'')));
-  params.set('rewards', getVal('inpRewards',''));
-  params.set('baseFail', getVal('inpBaseFail',''));
-  ['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45'].forEach(id=> params.set(id, getVal(id,'')));
-  const url=location.origin+location.pathname+'?'+params.toString();
-  navigator.clipboard.writeText(url).then(()=> alert('已複製目前設定的分享連結'))
-}
-function loadFromURL(){
-  const q=new URLSearchParams(location.search);
-  ['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpAlphaByBet','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=>{ if(q.has(id)) setVal(id,q.get(id)) });
-  if(q.has('rewards')) setVal('inpRewards', q.get('rewards'));
-  if(q.has('baseFail')) setVal('inpBaseFail', q.get('baseFail'));
-  ['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45'].forEach(id=>{ if(q.has(id)) setVal(id,q.get(id)) })
-}
-function openReadme(){
-  // 嘗試相對路徑與絕對路徑
-  fetch('README.md')
-    .then(r=> r.ok? r.text(): fetch('./README.md'))
-    .then(x=> typeof x.text==='function'? x.text(): x)
-    .then(txt=>{ const w=window.open(); w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+String(txt).replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))+'</pre>') })
-    .catch(()=> fetch(location.origin+location.pathname+'README.md').then(r=>r.text()).then(txt=>{ const w=window.open(); w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+txt+'</pre>') }).catch(err=> alert('找不到 README.md，請確認是否與本頁同層。')))
-}
+// precise auto-calibration
+let cancelFlag=false;
+function setProgress(pct,msg){ const bar=$('calibBar'); const box=$('calibProgressBox'); const m=$('calibMsg'); if(box) box.style.display='block'; if(bar) bar.style.width=(pct*100).toFixed(1)+'%'; if(m) m.textContent=msg }
+function hideProgress(){ const box=$('calibProgressBox'); if(box) box.style.display='none' }
+async function preciseAutoCalibrate(){
+  cancelFlag=false; $('btnCancel').onclick=()=>{ cancelFlag=true; setProgress(0,'已取消'); };
+  const target=Number(getVal('inpTarget',0.96))||0.96;
+  const bet=Number(getVal('inpBet',1))||1;
+  const rewards0=parseList(getVal('inpRewards',''));
+  const baseFailPct=parseList(getVal('inpBaseFail',''));
+  const s50=clamp(Number(getVal('inpS50',0.7))||0.7,0,1);
+  if(rewards0.length!==50||baseFailPct.length!==49){ alert('請先正確填入倍率與失敗率'); return }
+  const baseFail0=baseFailPct.map(x=>x/100); baseFail0.push(1-s50);
 
-// ---------- Wire up & Auto tune to ~96% ----------
-document.addEventListener('DOMContentLoaded', ()=>{
-  const requiredIds=['inpBet','inpSims','inpLam1','inpLam2','inpLam3','inpRewards','inpBaseFail','inpS50','inpTarget','inpMoneyCap','inpMultCap','inpAlphaByBet','btnRunAdv','btnCalibrate','btnCalibAdv','btnExportSpec','btnExportAlerts','btnShare','btnReset','btnReadme']
-  const missing=requiredIds.filter(id=>!$(id))
-  if(missing.length){ showError('缺少必要的 DOM 元件：'+missing.join(', ')); console.error('[BOOT] Missing', missing); return }
+  const includeTailTune = $('chkAlsoTuneTail').checked;
+  const GEN=6, POP=14;
+  const simsCoarse=15000, simsFine=120000;
+  const mutate=(v,rate,lo,hi)=> clamp(v*(1+(Math.random()*2-1)*rate), lo, hi);
 
-  // 初始化：載入 96% 預設，允許 URL 覆寫
-  loadDefaults96();
-  loadFromURL();
+  let seed={ lam1:Number(getVal('inpLam1',defaultLam[0]))||defaultLam[0], lam2:Number(getVal('inpLam2',defaultLam[1]))||defaultLam[1], lam3:Number(getVal('inpLam3',defaultLam[2]))||defaultLam[2], reward_scale:1.00, base_fail_scale:1.00, post40_abs_bump:Number(getVal('inpPost40Bump',defaultItems.post40_abs_bump))||defaultItems.post40_abs_bump, min_fail_after_45:Number(getVal('inpMinFailAfter45',defaultItems.min_fail_after_45))||defaultItems.min_fail_after_45 };
+  const bounds={ lam1:[0.8,3.0], lam2:[1.0,3.5], lam3:[2.0,12.0], reward_scale:[0.85,1.15], base_fail_scale:[0.6,1.6], post40_abs_bump:[0.00,0.20], min_fail_after_45:[0.40,0.80] };
+  function mkCfg(vec){ return Object.assign(getCfg(), { reward_scale:vec.reward_scale, base_fail_scale:vec.base_fail_scale, post40_abs_bump:vec.post40_abs_bump, min_fail_after_45:vec.min_fail_after_45 }) }
+  function simulateRTP(vec, sims){ const cfg=mkCfg(vec); const res=simulateMany({bet,sims,rewards:rewards0.map(r=>r*vec.reward_scale),baseFail:baseFail0,lam1:vec.lam1,lam2:vec.lam2,lam3:vec.lam3,cfg}); return res }
 
-  // 綁定
-  getEl('btnCalibrate').onclick=calibrate
-  getEl('btnExportSpec').onclick=exportSpec
-  getEl('btnExportAlerts').onclick=exportAlerts
-  getEl('btnRunAdv').onclick=runAdvanced
-  getEl('btnCalibAdv').onclick=()=>{ calibrateAdvanced(); runAdvanced(); }
-  getEl('btnShare').onclick=syncToURL
-  getEl('btnReset').onclick=()=>{ loadDefaults96(); setHTML('calibKPI',''); setHTML('tblSpec',''); setHTML('advResult',''); if(getEl('chkAutoTuneOnLoad').checked){ setTimeout(()=>{calibrateAdvanced(); runAdvanced()}, 60)} }
-  getEl('btnReadme').onclick=openReadme
+  // initial population
+  let pop=[]; for(let i=0;i<POP;i++){ const v=JSON.parse(JSON.stringify(seed)); v.lam1=mutate(v.lam1,0.2,bounds.lam1[0],bounds.lam1[1]); v.lam2=mutate(v.lam2,0.2,bounds.lam2[0],bounds.lam2[1]); v.lam3=mutate(v.lam3,0.2,bounds.lam3[0],bounds.lam3[1]); if(includeTailTune){ v.reward_scale=mutate(v.reward_scale,0.1,bounds.reward_scale[0],bounds.reward_scale[1]); v.base_fail_scale=mutate(v.base_fail_scale,0.2,bounds.base_fail_scale[0],bounds.base_fail_scale[1]); v.post40_abs_bump=mutate(v.post40_abs_bump,0.5,bounds.post40_abs_bump[0],bounds.post40_abs_bump[1]); v.min_fail_after_45=mutate(v.min_fail_after_45,0.2,bounds.min_fail_after_45[0],bounds.min_fail_after_45[1]); } pop.push(v) }
 
-  // 首次載入：自動微調 λ1~3 逼近 96%，並立即顯示 RTP 百分比
-  if(getEl('chkAutoTuneOnLoad').checked){
-    setTimeout(()=>{ calibrateAdvanced(); runAdvanced(); }, 100);
-  } else {
-    runAdvanced();
+  let best=null; let totalSteps=GEN*POP + 1; let step=0;
+  for(let g=0; g<GEN; g++){
+    if(cancelFlag){ hideProgress(); return }
+    setProgress(step/totalSteps, `第 ${g+1}/${GEN} 代：評估中...`);
+    let scored=[];
+    for(let i=0;i<POP;i++){
+      if(cancelFlag){ hideProgress(); return }
+      const r=simulateRTP(pop[i], simsCoarse);
+      const score=Math.abs(r.rtp-target);
+      const s={vec:pop[i], res:r, score};
+      scored.push(s); step++; setProgress(step/totalSteps, `第 ${g+1}/${GEN} 代：${i+1}/${POP} 已完成，RTP=${fmtPct(r.rtp)}`);
+      await new Promise(r=>setTimeout(r,0));
+    }
+    scored.sort((a,b)=>a.score-b.score);
+    if(!best || scored[0].score < best.score) best=scored[0];
+    const K=Math.max(3, Math.floor(POP*0.3)); const elites=scored.slice(0,K).map(s=>s.vec);
+    const next=[]; while(next.length<POP){ const parent=elites[Math.floor(Math.random()*elites.length)]; const child=JSON.parse(JSON.stringify(parent)); child.lam1=mutate(child.lam1,0.15,bounds.lam1[0],bounds.lam1[1]); child.lam2=mutate(child.lam2,0.15,bounds.lam2[0],bounds.lam2[1]); child.lam3=mutate(child.lam3,0.15,bounds.lam3[0],bounds.lam3[1]); if(includeTailTune){ child.reward_scale=mutate(child.reward_scale,0.08,bounds.reward_scale[0],bounds.reward_scale[1]); child.base_fail_scale=mutate(child.base_fail_scale,0.15,bounds.base_fail_scale[0],bounds.base_fail_scale[1]); child.post40_abs_bump=mutate(child.post40_abs_bump,0.3,bounds.post40_abs_bump[0],bounds.post40_abs_bump[1]); child.min_fail_after_45=mutate(child.min_fail_after_45,0.12,bounds.min_fail_after_45[0],bounds.min_fail_after_45[1]); } next.push(child) } pop=next;
   }
-})
+
+  if(cancelFlag){ hideProgress(); return }
+  setProgress(step/totalSteps, '最終精算中...');
+  const finalRes=simulateRTP(best.vec, simsFine); step++; setProgress(step/totalSteps, `完成：RTP=${fmtPct(finalRes.rtp)}（誤差 ${(Math.abs(finalRes.rtp-target)*100).toFixed(2)}%）`); setTimeout(()=>hideProgress(),1200);
+
+  setVal('inpLam1', best.vec.lam1.toFixed(4)); setVal('inpLam2', best.vec.lam2.toFixed(4)); setVal('inpLam3', best.vec.lam3.toFixed(4));
+  setVal('inpPost40Bump', best.vec.post40_abs_bump.toFixed(4)); setVal('inpMinFailAfter45', best.vec.min_fail_after_45.toFixed(4));
+  const rew=parseList(getVal('inpRewards','')); const rew2=rew.map(r=> (r*best.vec.reward_scale).toFixed(6)); setVal('inpRewards', rew2.join(','));
+  const bf=parseList(getVal('inpBaseFail','')); const bf2=bf.map(x=> (x*best.vec.base_fail_scale).toFixed(4)); setVal('inpBaseFail', bf2.join(','));
+  const r=runAdvanced();
+  setHTML('advResult', $('advResult').innerHTML + `<div class="muted small">λ1/2/3 = ${best.vec.lam1.toFixed(3)} / ${best.vec.lam2.toFixed(3)} / ${best.vec.lam3.toFixed(3)}，倍率縮放=${best.vec.reward_scale.toFixed(3)}，風險縮放=${best.vec.base_fail_scale.toFixed(3)}，尾段(40–49)+=${best.vec.post40_abs_bump.toFixed(3)}，≥45下限=${best.vec.min_fail_after_45.toFixed(3)}</div>`);
+}
+
+// share & readme
+function syncToURL(){ const p=new URLSearchParams(); ['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpAlphaByBet','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=> p.set(id,getVal(id,''))); p.set('rewards',getVal('inpRewards','')); p.set('baseFail',getVal('inpBaseFail','')); ['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45'].forEach(id=> p.set(id,getVal(id,''))); const url=location.origin+location.pathname+'?'+p.toString(); navigator.clipboard.writeText(url).then(()=> alert('已複製目前設定的分享連結')) }
+function loadFromURL(){ const q=new URLSearchParams(location.search); ['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpAlphaByBet','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=>{ if(q.has(id)) setVal(id,q.get(id)) }); if(q.has('rewards')) setVal('inpRewards', q.get('rewards')); if(q.has('baseFail')) setVal('inpBaseFail', q.get('baseFail')); ['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45'].forEach(id=>{ if(q.has(id)) setVal(id,q.get(id)) }) }
+function openReadme(){ fetch('README.md').then(r=>r.text()).then(txt=>{ const w=window.open(); w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+txt.replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))+'</pre>') }).catch(()=> alert('找不到 README.md')) }
+
+// wire up
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadDefaults96(); loadFromURL();
+  $('btnCalibrate').onclick=calibrate; $('btnExportSpec').onclick=exportSpec; $('btnExportAlerts').onclick=exportAlerts;
+  $('btnRunAdv').onclick=runAdvanced; $('btnCalibAdv').onclick=preciseAutoCalibrate; $('btnShare').onclick=syncToURL;
+  $('btnReset').onclick=()=>{ loadDefaults96(); setHTML('calibKPI',''); setHTML('tblSpec',''); setHTML('advResult',''); }
+  $('btnReadme').onclick=openReadme;
+  runAdvanced();
+});
 </script>
 </body>
 </html>
