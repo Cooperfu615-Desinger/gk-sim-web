@@ -84,98 +84,11 @@
       <div class="spacer"></div>
       <label>基準失敗率 %（前 49 步；第 50 步自動由成功率推），逗號或換行</label>
       <textarea id="inpBaseFail" class="mono"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button id="btnCalibrate">自動校準（基礎＋上限）</button>
-        <button id="btnExportSpec" class="secondary">匯出規格 CSV</button>
-        <button id="btnExportAlerts" class="secondary">匯出警戒 CSV</button>
+      <div class=\"row\" style=\"margin-top:10px\">
+        <button id=\"btnRunAdv\">執行進階模擬</button>
+        <button id=\"btnCalibAdv\" class=\"secondary\">進階自動校準到 96%</button>
       </div>
-    </div>
-
-    <!-- 右：進階模擬 -->
-    <div class="card">
-      <h2>進階模擬（道具／曲線破壞者）</h2>
-      <div class="grid g-3">
-        <div>
-          <label>下注額（$）</label>
-          <input id="inpBet" type="number" step="0.1" value="1" />
-        </div>
-        <div>
-          <label>模擬局數</label>
-          <input id="inpSims" type="number" step="1000" value="20000" />
-        </div>
-        <div></div>
-        <div>
-          <label>λ1（步 1–30）</label>
-          <input id="inpLam1" type="number" step="0.01" value="1.0" />
-        </div>
-        <div>
-          <label>λ2（步 31–40）</label>
-          <input id="inpLam2" type="number" step="0.01" value="1.12" />
-        </div>
-        <div>
-          <label>λ3（步 41–50）</label>
-          <input id="inpLam3" type="number" step="0.01" value="2.5" />
-        </div>
-      </div>
-
-      <div class="spacer"></div>
-      <h3>道具 / 破壞者 參數</h3>
-      <div class="grid g-3">
-        <div>
-          <label>畫布 機率</label>
-          <input id="inpCanvasProb" type="number" step="0.01" value="0.08" />
-        </div>
-        <div>
-          <label>畫布 加成 (x)</label>
-          <input id="inpCanvasBonus" type="number" step="0.1" value="1.0" />
-        </div>
-        <div></div>
-        <div>
-          <label>地標 機率</label>
-          <input id="inpLandmarkProb" type="number" step="0.001" value="0.01" />
-        </div>
-        <div>
-          <label>地標 失敗率</label>
-          <input id="inpLandmarkFail" type="number" step="0.01" value="0.75" />
-        </div>
-        <div>
-          <label>地標 獎勵 (x)</label>
-          <input id="inpLandmarkBonus" type="number" step="10" value="1000" />
-        </div>
-        <div>
-          <label>把風 成本 ×bet</label>
-          <input id="inpLookoutCost" type="number" step="0.05" value="0.5" />
-        </div>
-        <div>
-          <label>無人機 成本 ×bet</label>
-          <input id="inpDroneCost" type="number" step="0.05" value="0.5" />
-        </div>
-        <div>
-          <label>噴頭 成本 ×bet</label>
-          <input id="inpNozzleCost" type="number" step="0.05" value="0.4" />
-        </div>
-        <div>
-          <label>模板 成本 ×bet</label>
-          <input id="inpTemplateCost" type="number" step="0.05" value="0.6" />
-        </div>
-        <div>
-          <label>後段 +絕對風險 (40–49)</label>
-          <input id="inpPost40Bump" type="number" step="0.01" value="0.05" />
-        </div>
-        <div>
-          <label>最小失敗率 (≥45)</label>
-          <input id="inpMinFailAfter45" type="number" step="0.01" value="0.35" />
-        </div>
-        <div>
-          <label>下注額上限係數 α</label>
-          <input id="inpAlphaByBet" type="number" step="0.05" value="0.5" />
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="btnRunAdv">執行進階模擬</button>
-      </div>
-      <div id="advResult" class="row" style="margin-top:12px"></div>
+      <div id=\"advResult\" class="row" style="margin-top:12px"></div>
       <p class="footnote">提示：把任一數值設為 0 即可快速停用該功能（例如地標機率=0 代表關閉）。</p>
       <p class="footnote">說明：進階模擬內建與文件一致的道具/破壞者、後段風險加劇與上限規則；λ1/2/3 使用 odds 縮放。</p>
     </div>
@@ -342,21 +255,6 @@ function getCfg(){
     post40_abs_bump: Number($('#inpPost40Bump')?.value)||0.05,
   }
 }
-const CFG = {
-  canvas_prob: 0.08,
-  landmark_prob: 0.01,
-  landmark_fail: 0.75,
-  landmark_bonus: 1000.0,
-  lookout_cost_mult: 0.50,
-  drone_cost_mult: 0.50,
-  nozzle_cost_mult: 0.40,
-  template_cost_mult: 0.60,
-  money_cap: 50000.0,
-  mult_cap: 5000.0,
-  alpha_by_bet: 0.5,
-  min_fail_after_45: 0.35,
-  post40_abs_bump: 0.05,
-}
 function applyZoneLambda(baseFail, lam1, lam2, lam3){
   const cfg = getCfg()
   const p = baseFail.slice()
@@ -374,7 +272,9 @@ function effectiveMult(mult, bet){
   return Math.min(mult, ...caps)
 }
 function bestStopNoItems(pFail, bet){
-  const {ev} = evCurve(defaultRewards, pFail, effectiveMult(Infinity, bet)) // cap via per-step later
+  // 使用目前的上限規則計算無道具的最佳收工步
+  const cap = effectiveMult(1e12, bet) // 近似無限，仍會受 caps 夠緊時限制
+  const {ev} = evCurve(defaultRewards, pFail, cap)
   return argmax(ev)+1
 }
 function simulateRound(bet, pFail, rng){
@@ -398,6 +298,87 @@ function simulateRound(bet, pFail, rng){
   return Math.max(0, payout - cost)
 }
 function runAdvanced(){
+  try{
+    const bet = Number($('#inpBet').value)||1
+    const sims = Number($('#inpSims').value)||20000
+    const lam1 = Number($('#inpLam1').value)||1
+    const lam2 = Number($('#inpLam2').value)||1.05
+    const lam3 = Number($('#inpLam3').value)||1.3
+    const rewards = parseList($('#inpRewards').value)
+    const baseFailPct = parseList($('#inpBaseFail').value)
+    const s50 = clamp(Number($('#inpS50').value)||0.7,0,1)
+    if(rewards.length!==50 || baseFailPct.length!==49){ alert('請先正確填入倍率與失敗率'); return }
+    const baseFail = baseFailPct.map(x=>x/100); baseFail.push(1-s50)
+    const pFail = applyZoneLambda(baseFail, lam1, lam2, lam3)
+    let sum=0, sum2=0
+    const rng = Math.random
+    for(let i=0;i<sims;i++){
+      const v = simulateRound(bet, pFail, rng)
+      sum += v; sum2 += v*v
+    }
+    const mean = sum/sims
+    const std = Math.sqrt(Math.max(0, sum2/sims - mean*mean))
+    const rtp = (sum/(bet*sims))
+    const cls = rtp>0.965? 'warn': (rtp<0.955? 'warn':'ok')
+    $('#advResult').innerHTML = `
+      <div><div class=\"muted\">RTP</div><div class=\"kpi ${cls}\">${fmt(rtp)}</div></div>
+      <div><div class=\"muted\">Mean payout</div><div class=\"kpi\">$${fmt(mean)}</div></div>
+      <div><div class=\"muted\">Std payout</div><div class=\"kpi\">$${fmt(std)}</div></div>`
+  }catch(err){
+    console.error(err)
+    alert('進階模擬執行時發生錯誤，已在主控台輸出詳情。請檢查輸入或參數。')
+  }
+}
+function runOnceRTP(bet, lam1, lam2, lam3, sims){
+  const rewards = parseList($('#inpRewards').value)
+  const baseFailPct = parseList($('#inpBaseFail').value)
+  const s50 = clamp(Number($('#inpS50').value)||0.7,0,1)
+  const baseFail = baseFailPct.map(x=>x/100); baseFail.push(1-s50)
+  const pFail = applyZoneLambda(baseFail, lam1, lam2, lam3)
+  let sum=0
+  const rng = Math.random
+  for(let i=0;i<sims;i++) sum += simulateRound(bet, pFail, rng)
+  return sum/(bet*sims)
+}
+function calibrateAdvanced(){
+  const bet = Number($('#inpBet').value)||1
+  const simsCoarse = 20000
+  const simsFine = 50000
+  const target = Number($('#inpTarget').value)||0.96
+  // 粗略網格
+  const grid1=[0.8,1.0,1.2,1.4]
+  const grid2=[1.0,1.1,1.2,1.3,1.4]
+  const grid3=[1.5,2.0,2.5,3.0]
+  let best={gap:1e9,l1:null,l2:null,l3:null,rtp:null}
+  for(const l1 of grid1){
+    for(const l2 of grid2){
+      for(const l3 of grid3){
+        const r = runOnceRTP(bet,l1,l2,l3,simsCoarse)
+        const g = Math.abs(r-target)
+        if(g<best.gap){ best={gap:g,l1,l2,l3,rtp:r} }
+      }
+    }
+  }
+  // 細化（座標下降）
+  function neigh(x){ return [x*0.9, x*0.95, x, x*1.05, x*1.1] }
+  for(let iter=0; iter<3; iter++){
+    for(const [idx,key] of [[0,'l1'],[1,'l2'],[2,'l3']]){
+      const cand = neigh(best[key])
+      for(const v of cand){
+        const r = runOnceRTP(bet, key==='l1'?v:best.l1, key==='l2'?v:best.l2, key==='l3'?v:best.l3, simsFine)
+        const g = Math.abs(r-target)
+        if(g<best.gap){ best={gap:g,l1:(key==='l1'?v:best.l1),l2:(key==='l2'?v:best.l2),l3:(key==='l3'?v:best.l3),rtp:r} }
+      }
+    }
+  }
+  // 套用到輸入框並顯示
+  $('#inpLam1').value = best.l1.toFixed(4)
+  $('#inpLam2').value = best.l2.toFixed(4)
+  $('#inpLam3').value = best.l3.toFixed(4)
+  $('#advResult').innerHTML = `<div><div class=\"muted\">Calibrated λ</div><div class=\"kpi\">${best.l1.toFixed(3)} / ${best.l2.toFixed(3)} / ${best.l3.toFixed(3)}</div></div>
+    <div><div class=\"muted\">RTP</div><div class=\"kpi\">${fmt(best.rtp)}</div></div>`
+}
+
   const bet = Number($('#inpBet').value)||1
   const sims = Number($('#inpSims').value)||20000
   const lam1 = Number($('#inpLam1').value)||1
@@ -464,8 +445,7 @@ $('btnCalibrate').onclick = calibrate
 $('btnExportSpec').onclick = exportSpec
 $('btnExportAlerts').onclick = exportAlerts
 $('btnRunAdv').onclick = runAdvanced
-$('btnShare').onclick = syncToURL
-$('btnReset').onclick = ()=>{ loadDefaults(); $('inpTarget').value=0.96; $('inpS50').value=0.7; $('inpMoneyCap').value=50000; $('inpMultCap').value=5000; $('inpBet').value=1; $('inpSims').value=20000; $('inpLam1').value=1.0; $('inpLam2').value=1.05; $('inpLam3').value=1.3; $('tblSpec').innerHTML=''; $('calibKPI').innerHTML=''; $('advResult').innerHTML='' }
+$('btnCalibAdv').onclick = calibrateAdvanced
 
 loadDefaults(); loadFromURL();
 </script>
