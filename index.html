@@ -110,17 +110,73 @@
         </div>
         <div>
           <label>λ2（步 31–40）</label>
-          <input id="inpLam2" type="number" step="0.01" value="1.05" />
+          <input id="inpLam2" type="number" step="0.01" value="1.12" />
         </div>
         <div>
           <label>λ3（步 41–50）</label>
-          <input id="inpLam3" type="number" step="0.01" value="1.3" />
+          <input id="inpLam3" type="number" step="0.01" value="2.5" />
         </div>
       </div>
+
+      <div class="spacer"></div>
+      <h3>道具 / 破壞者 參數</h3>
+      <div class="grid g-3">
+        <div>
+          <label>畫布 機率</label>
+          <input id="inpCanvasProb" type="number" step="0.01" value="0.08" />
+        </div>
+        <div>
+          <label>畫布 加成 (x)</label>
+          <input id="inpCanvasBonus" type="number" step="0.1" value="1.0" />
+        </div>
+        <div></div>
+        <div>
+          <label>地標 機率</label>
+          <input id="inpLandmarkProb" type="number" step="0.001" value="0.01" />
+        </div>
+        <div>
+          <label>地標 失敗率</label>
+          <input id="inpLandmarkFail" type="number" step="0.01" value="0.75" />
+        </div>
+        <div>
+          <label>地標 獎勵 (x)</label>
+          <input id="inpLandmarkBonus" type="number" step="10" value="1000" />
+        </div>
+        <div>
+          <label>把風 成本 ×bet</label>
+          <input id="inpLookoutCost" type="number" step="0.05" value="0.5" />
+        </div>
+        <div>
+          <label>無人機 成本 ×bet</label>
+          <input id="inpDroneCost" type="number" step="0.05" value="0.5" />
+        </div>
+        <div>
+          <label>噴頭 成本 ×bet</label>
+          <input id="inpNozzleCost" type="number" step="0.05" value="0.4" />
+        </div>
+        <div>
+          <label>模板 成本 ×bet</label>
+          <input id="inpTemplateCost" type="number" step="0.05" value="0.6" />
+        </div>
+        <div>
+          <label>後段 +絕對風險 (40–49)</label>
+          <input id="inpPost40Bump" type="number" step="0.01" value="0.05" />
+        </div>
+        <div>
+          <label>最小失敗率 (≥45)</label>
+          <input id="inpMinFailAfter45" type="number" step="0.01" value="0.35" />
+        </div>
+        <div>
+          <label>下注額上限係數 α</label>
+          <input id="inpAlphaByBet" type="number" step="0.05" value="0.5" />
+        </div>
+      </div>
+
       <div class="row" style="margin-top:10px">
         <button id="btnRunAdv">執行進階模擬</button>
       </div>
       <div id="advResult" class="row" style="margin-top:12px"></div>
+      <p class="footnote">提示：把任一數值設為 0 即可快速停用該功能（例如地標機率=0 代表關閉）。</p>
       <p class="footnote">說明：進階模擬內建與文件一致的道具/破壞者、後段風險加劇與上限規則；λ1/2/3 使用 odds 縮放。</p>
     </div>
 
@@ -267,6 +323,25 @@ function exportAlerts(){
 }
 
 // ---------- Advanced Monte Carlo (items + curve breakers) ----------
+// 讀取目前畫面上的進階參數
+function getCfg(){
+  return {
+    canvas_prob: Number($('#inpCanvasProb')?.value)||0,
+    canvas_bonus: Number($('#inpCanvasBonus')?.value)||0,
+    landmark_prob: Number($('#inpLandmarkProb')?.value)||0,
+    landmark_fail: Number($('#inpLandmarkFail')?.value)||0,
+    landmark_bonus: Number($('#inpLandmarkBonus')?.value)||0,
+    lookout_cost_mult: Number($('#inpLookoutCost')?.value)||0,
+    drone_cost_mult: Number($('#inpDroneCost')?.value)||0,
+    nozzle_cost_mult: Number($('#inpNozzleCost')?.value)||0,
+    template_cost_mult: Number($('#inpTemplateCost')?.value)||0,
+    money_cap: Number($('#inpMoneyCap')?.value)||50000,
+    mult_cap: Number($('#inpMultCap')?.value)||5000,
+    alpha_by_bet: Number($('#inpAlphaByBet')?.value)||0.5,
+    min_fail_after_45: Number($('#inpMinFailAfter45')?.value)||0.35,
+    post40_abs_bump: Number($('#inpPost40Bump')?.value)||0.05,
+  }
+}
 const CFG = {
   canvas_prob: 0.08,
   landmark_prob: 0.01,
@@ -283,20 +358,19 @@ const CFG = {
   post40_abs_bump: 0.05,
 }
 function applyZoneLambda(baseFail, lam1, lam2, lam3){
+  const cfg = getCfg()
   const p = baseFail.slice()
-  // bump 40..49 (index 39..48)
-  for(let i=39;i<=48;i++) p[i] = clamp(p[i]+CFG.post40_abs_bump, 0, 1)
-  // odds-scale by zones
+  for(let i=39;i<=48;i++) p[i] = clamp(p[i]+cfg.post40_abs_bump, 0, 1)
   for(let i=0;i<50;i++){
     const lam = i<30? lam1 : (i<40? lam2 : lam3)
     p[i] = oddsScale(p[i], lam)
   }
-  // floor after 45 (index >=44, <49)
-  for(let i=44;i<=48;i++) p[i] = Math.max(p[i], CFG.min_fail_after_45)
+  for(let i=44;i<=48;i++) p[i] = Math.max(p[i], cfg.min_fail_after_45)
   return p
 }
 function effectiveMult(mult, bet){
-  const caps=[CFG.money_cap/bet, CFG.mult_cap, CFG.alpha_by_bet*(CFG.money_cap/bet)]
+  const cfg = getCfg()
+  const caps=[cfg.money_cap/bet, cfg.mult_cap, cfg.alpha_by_bet*(cfg.money_cap/bet)]
   return Math.min(mult, ...caps)
 }
 function bestStopNoItems(pFail, bet){
@@ -304,34 +378,52 @@ function bestStopNoItems(pFail, bet){
   return argmax(ev)+1
 }
 function simulateRound(bet, pFail, rng){
+  const cfg = getCfg()
   let lookout=1, drone=1, nozzle=1, template=1
   let cost=0, step=0, alive=true, mult=1.0, bonus=0.0, droneBuf=0
   const stop = bestStopNoItems(pFail, bet)
   while(alive && step<stop){
     const next = step+1
-    if(template>0 && next===35){ template--; cost += CFG.template_cost_mult*bet; step = 38; mult = defaultRewards[step-1]; continue }
-    const isCanvas = (next<=35) && (rng()<CFG.canvas_prob)
-    const isLandmark = (next>=28 && next<=44) && (rng()<CFG.landmark_prob)
-    if(drone>0 && (next===41||next===43||next===45) && !isLandmark){ droneBuf=1; drone--; cost+=CFG.drone_cost_mult*bet }
-    const stepFail = isLandmark? CFG.landmark_fail : pFail[next-1]
+    if(template>0 && next===35){ template--; cost += cfg.template_cost_mult*bet; step = 38; mult = defaultRewards[step-1]; continue }
+    const isCanvas = (next<=35) && (rng()<cfg.canvas_prob)
+    const isLandmark = (next>=28 && next<=44) && (rng()<cfg.landmark_prob)
+    if(drone>0 && (next===41||next===43||next===45) && !isLandmark){ droneBuf=1; drone--; cost+=cfg.drone_cost_mult*bet }
+    const stepFail = isLandmark? cfg.landmark_fail : pFail[next-1]
     const effFail = (droneBuf===1 && !isLandmark)? 0.0 : stepFail; if(droneBuf===1 && !isLandmark) droneBuf=0
-    if(rng()<effFail){ if(lookout>0){lookout--; cost+=CFG.lookout_cost_mult*bet} else { alive=false; break } }
-    else { step=next; mult = defaultRewards[step-1]; if(isCanvas) mult += 1.0; if(isLandmark) bonus += CFG.landmark_bonus; if(nozzle>0 && step===45 && !isLandmark){nozzle--; cost+=CFG.nozzle_cost_mult*bet; mult*=2.0} }
+    if(rng()<effFail){ if(lookout>0){lookout--; cost+=cfg.lookout_cost_mult*bet} else { alive=false; break } }
+    else { step=next; mult = defaultRewards[step-1]; if(isCanvas) mult += cfg.canvas_bonus; if(isLandmark) bonus += cfg.landmark_bonus; if(nozzle>0 && step===45 && !isLandmark){nozzle--; cost+=cfg.nozzle_cost_mult*bet; mult*=2.0} }
   }
   let payout=0
   if(alive && step>=1){ let total = mult+bonus; total = effectiveMult(total, bet); payout = total*bet }
   return Math.max(0, payout - cost)
 }
 function runAdvanced(){
-  const bet = Number($('inpBet').value)||1
-  const sims = Number($('inpSims').value)||20000
-  const lam1 = Number($('inpLam1').value)||1
-  const lam2 = Number($('inpLam2').value)||1.05
-  const lam3 = Number($('inpLam3').value)||1.3
-  const rewards = parseList($('inpRewards').value)
-  const baseFailPct = parseList($('inpBaseFail').value)
-  const s50 = clamp(Number($('inpS50').value)||0.7,0,1)
+  const bet = Number($('#inpBet').value)||1
+  const sims = Number($('#inpSims').value)||20000
+  const lam1 = Number($('#inpLam1').value)||1
+  const lam2 = Number($('#inpLam2').value)||1.05
+  const lam3 = Number($('#inpLam3').value)||1.3
+  const rewards = parseList($('#inpRewards').value)
+  const baseFailPct = parseList($('#inpBaseFail').value)
+  const s50 = clamp(Number($('#inpS50').value)||0.7,0,1)
   if(rewards.length!==50 || baseFailPct.length!==49){ alert('請先正確填入倍率與失敗率'); return }
+  const baseFail = baseFailPct.map(x=>x/100); baseFail.push(1-s50)
+  const pFail = applyZoneLambda(baseFail, lam1, lam2, lam3)
+  let sum=0, sum2=0
+  const rng = Math.random
+  for(let i=0;i<sims;i++){
+    const v = simulateRound(bet, pFail, rng)
+    sum += v; sum2 += v*v
+  }
+  const mean = sum/sims
+  const std = Math.sqrt(Math.max(0, sum2/sims - mean*mean))
+  const rtp = (sum/(bet*sims))
+  const cls = rtp>0.965? 'warn': (rtp<0.955? 'warn':'ok')
+  $('#advResult').innerHTML = `
+    <div><div class=\"muted\">RTP</div><div class=\"kpi ${cls}\">${fmt(rtp)}</div></div>
+    <div><div class=\"muted\">Mean payout</div><div class=\"kpi\">$${fmt(mean)}</div></div>
+    <div><div class=\"muted\">Std payout</div><div class=\"kpi\">$${fmt(std)}</div></div>`
+}
   const baseFail = baseFailPct.map(x=>x/100); baseFail.push(1-s50)
   const pFail = applyZoneLambda(baseFail, lam1, lam2, lam3)
   let sum=0, sum2=0
@@ -354,8 +446,9 @@ function runAdvanced(){
 function syncToURL(){
   const params = new URLSearchParams()
   ;['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=> params.set(id, $(id).value))
-  params.set('rewards', $('inpRewards').value)
-  params.set('baseFail', $('inpBaseFail').value)
+  params.set('rewards', $('#inpRewards').value)
+  params.set('baseFail', $('#inpBaseFail').value)
+  ;['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45','inpAlphaByBet'].forEach(id=> params.set(id, $(id).value)).value)
   const url = location.origin+location.pathname+'?'+params.toString()
   navigator.clipboard.writeText(url).then(()=> alert('已複製目前設定的分享連結'))
 }
@@ -364,7 +457,7 @@ function loadFromURL(){
   ;['inpTarget','inpS50','inpMoneyCap','inpMultCap','inpBet','inpSims','inpLam1','inpLam2','inpLam3'].forEach(id=>{ if(q.has(id)) $(id).value = q.get(id) })
   if(q.has('rewards')) $('inpRewards').value = q.get('rewards')
   if(q.has('baseFail')) $('inpBaseFail').value = q.get('baseFail')
-}
+  ;['inpCanvasProb','inpCanvasBonus','inpLandmarkProb','inpLandmarkFail','inpLandmarkBonus','inpLookoutCost','inpDroneCost','inpNozzleCost','inpTemplateCost','inpPost40Bump','inpMinFailAfter45','inpAlphaByBet'].forEach(id=>{ if(q.has(id)) $(id).value = q.get(id) })
 
 // ---------- Wire up ----------
 $('btnCalibrate').onclick = calibrate
