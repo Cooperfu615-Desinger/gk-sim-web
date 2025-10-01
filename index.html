@@ -73,7 +73,15 @@
   </div>
 
   <script>
-    function openReadme(){ fetch('readme.md').then(r=>r.text()).then(txt=>{ const w=window.open(); w.document.write('<pre>'+txt+'</pre>') }).catch(err=>alert('找不到 readme.md')) }
+    function openReadme(){ 
+      fetch('README.md')
+        .then(r=>r.text())
+        .then(txt=>{ 
+          const w=window.open(); 
+          w.document.write('<pre>'+txt+'</pre>') 
+        })
+        .catch(err=>alert('找不到 README.md'));
+    }
     document.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('btnReadme').onclick=openReadme;
       document.getElementById('btnCalibrate').onclick=()=>alert('執行校準...');
