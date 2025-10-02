@@ -11,7 +11,7 @@ h1,h2,h3{margin:0 0 .5rem}.wrap{max-width:1180px;margin:24px auto;padding:0 16px
 .grid{display:grid;gap:16px}.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .row{display:flex;gap:12px;flex-wrap:wrap}label{display:block;font-weight:600;margin-bottom:6px;color:var(--sub)}
-input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:var(--text)}
+input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:#var(--text)}
 textarea{min-height:110px;white-space:pre}button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#07111f;background:var(--accent);cursor:pointer}
 button.secondary{background:#263250;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px dashed var(--muted)}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
@@ -25,6 +25,11 @@ button.secondary{background:#263250;color:var(--text)}button.ghost{background:tr
 .modal .panel{max-width:900px;width:100%;max-height:80vh;overflow:auto;background:#0e1630;border:1px solid #2a3553;border-radius:14px;padding:16px}
 .modal pre{white-space:pre-wrap;font-family:ui-monospace,monospace}
 .modal .close{float:right;background:#2a3553;color:#cfe1ff;border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
+/* better inline options layout */
+.row.align-center{align-items:center}
+.inline-tags{display:flex;gap:8px;flex-wrap:wrap}
+.inline-tags .tag{padding:2px 10px;border-radius:999px;border:1px solid var(--muted);background:#1b223c;color:#c7d3ea}
+.help-btn{background:#263250;color:#cfe1ff;border:1px solid var(--muted);padding:4px 8px;border-radius:8px}
 </style>
 </head>
 <body>
@@ -98,11 +103,31 @@ button.secondary{background:#263250;color:var(--text)}button.ghost{background:tr
       <div><label>最小失敗率 (≥45)</label><input id="inpMinFailAfter45" type="number" step="0.01" value="0.50" /></div>
     </div>
 
+    <div class="row" style="margin-top:6px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0">
+        <input type="checkbox" id="chkUseNozzle" />
+        <span class="muted">本局購買：精密工具(噴頭) → 兌現乘 <b>1.5x</b>（成本 = 下注額 × 噴頭成本）</span>
+      </label>
+    </div>
+
     <div class="row" style="margin-top:10px">
       <button id="btnRunAdv">執行進階模擬</button>
       <button id="btnCalibAdv" class="secondary">進階自動校準到 96%（精確）</button>
-      <label style="display:flex;align-items:center;gap:6px" class="small"><input type="checkbox" id="chkAlsoTuneTail" checked />同時調：尾段下限／後段風險／倍率縮放／基準風險縮放</label>
     </div>
+    <div class="row align-center" style="margin-top:8px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0">
+        <input type="checkbox" id="chkAlsoTuneTail" checked />
+        <span class="muted">同時調整：</span>
+      </label>
+      <div class="inline-tags">
+        <span class="tag">尾段下限</span>
+        <span class="tag">後段風險</span>
+        <span class="tag">倍率縮放</span>
+        <span class="tag">基準風險縮放</span>
+      </div>
+      <button type="button" id="btnTuneHelp" class="help-btn" title="說明">?</button>
+    </div>
+
     <div class="row" id="advResult" style="margin-top:12px"></div>
 
     <div id="calibProgressBox" style="margin-top:8px;display:none">
@@ -148,7 +173,7 @@ const README_TEXT = {text: `# GK Simulator - 完整版 (96% 預設展示版)
 - **道具/破壞者**：
   - 防爆盾 (把風) → 2.0x bet
   - 聽診器 (無人機) → 1.5x bet
-  - 精密工具 (噴頭) → 1.0x bet
+  - 精密工具 (噴頭) → 1.0x bet（※啟動後持續存在，兌現乘 1.5x）
   - 破解器 (模版) → 0.3x bet
 - **進階自動校準**：支援多參數搜尋，會顯示進度條與即時 RTP，完成後更新到最佳數值。
 - **結果顯示**：
@@ -177,20 +202,6 @@ const README_TEXT = {text: `# GK Simulator - 完整版 (96% 預設展示版)
 4. 儲存後，幾分鐘內會生成網址，例如：  
    \`https://<username>.github.io/gk-sim-web/\`
 
----
-
-## 📈 預設數值 (展示版)
-- RTP ≈ 96%  
-- 金額上限：5,000 USD  
-- 倍率上限：2,000x  
-- α = 0.30  
-
----
-
-## 👥 適用對象
-- **後端工程師**：依據模擬數據，直接套用已驗證的曲線與道具成本。  
-- **機率工程師**：可修改 λ 值 / 曲線 / 道具數據，並快速驗證 RTP。  
-- **企劃/PM**：可直觀看到不同數據設置下 RTP 與風險的變化，便於溝通與決策。  
 `};
 
 // == utils ==
@@ -226,6 +237,7 @@ function loadDefaults96(){
   setVal('inpLandmarkProb',defaultItems.landmark_prob); setVal('inpLandmarkFail',defaultItems.landmark_fail); setVal('inpLandmarkBonus',defaultItems.landmark_bonus);
   setVal('inpLookoutCost',defaultItems.lookout_cost_mult); setVal('inpDroneCost',defaultItems.drone_cost_mult); setVal('inpNozzleCost',defaultItems.nozzle_cost_mult); setVal('inpTemplateCost',defaultItems.template_cost_mult);
   setVal('inpPost40Bump',defaultItems.post40_abs_bump); setVal('inpMinFailAfter45',defaultItems.min_fail_after_45);
+  const chk=document.getElementById('chkUseNozzle'); if(chk) chk.checked=false;
 }
 
 // == base spec calibration ==
@@ -284,11 +296,12 @@ function getCfg(){ return {
   alpha_by_bet:Number(getVal('inpAlphaByBet',defaultAlpha))||defaultAlpha,
   post40_abs_bump:Number(getVal('inpPost40Bump',defaultItems.post40_abs_bump))||defaultItems.post40_abs_bump,
   min_fail_after_45:Number(getVal('inpMinFailAfter45',defaultItems.min_fail_after_45))||defaultItems.min_fail_after_45,
-  reward_scale:1.0, base_fail_scale:1.0
+  reward_scale:1.0, base_fail_scale:1.0,
+  use_nozzle_cashout_x15: !!document.getElementById('chkUseNozzle')?.checked
 }}
 function applyZoneLambda(baseFail,lam1,lam2,lam3,cfg){
-  const p=baseFail.map(x=> clamp(x*cfg.base_fail_scale,0,1));
-  for(let i=39;i<=48;i++) p[i]=clamp(p[i]+cfg.post40_abs_bump,0,1);
+  const p=baseFail.map(x=> Math.max(0, Math.min(1, x*cfg.base_fail_scale)));
+  for(let i=39;i<=48;i++) p[i]=Math.max(0, Math.min(1, p[i]+cfg.post40_abs_bump));
   for(let i=0;i<50;i++){ const lam=i<30?lam1:(i<40?lam2:lam3); p[i]=oddsScale(p[i],lam) }
   for(let i=44;i<=48;i++) p[i]=Math.max(p[i],cfg.min_fail_after_45);
   return p
@@ -296,17 +309,21 @@ function applyZoneLambda(baseFail,lam1,lam2,lam3,cfg){
 function effectiveMult(mult,bet,cfg){ const caps=[cfg.money_cap/bet, cfg.mult_cap, cfg.alpha_by_bet*(cfg.money_cap/bet)]; return Math.min(mult,...caps) }
 function bestStopNoItems(rewards,pFail,bet,cfg){ const cap=effectiveMult(1e9,bet,cfg); const {ev}=evCurve(rewards,pFail,cap); return argmax(ev)+1 }
 function simulateRound(bet,rewards,pFail,rng,cfg){
-  let lookout=1,drone=1,nozzle=1,template=1; let cost=0,step=0,alive=true,mult=1.0,bonus=0.0,droneBuf=0;
+  let lookout=1,drone=1,template=1; let cost=0,step=0,alive=true,mult=1.0,bonus=0.0,droneBuf=0;
+  const nozzleBuff = cfg.use_nozzle_cashout_x15;
+  if(nozzleBuff){ cost += cfg.nozzle_cost_mult * bet; }
+
   const stop=bestStopNoItems(rewards,pFail,bet,cfg);
   while(alive&&step<stop){
     const next=step+1;
-    if(template>0&&next===35){ template--; cost+=cfg.template_cost_mult*bet; step=Math.min(50, step+5); mult=rewards[step-1]||mult; continue }
     const isCanvas=(next<=35)&&(rng()<cfg.canvas_prob);
     const isLandmark=(next>=28&&next<=44)&&(rng()<cfg.landmark_prob);
+
     if(drone>0&&(next===41||next===43||next===45)&&!isLandmark){ droneBuf=1; drone--; cost+=cfg.drone_cost_mult*bet }
     const stepFail=isLandmark?cfg.landmark_fail:pFail[next-1];
     const effFail=(droneBuf===1&&!isLandmark)?0.0:stepFail;
     if(droneBuf===1&&!isLandmark) droneBuf=0;
+
     if(rng()<effFail){
       if(lookout>0){lookout--; cost+=cfg.lookout_cost_mult*bet}
       else { alive=false; break }
@@ -314,11 +331,16 @@ function simulateRound(bet,rewards,pFail,rng,cfg){
       step=next; mult=rewards[step-1]*cfg.reward_scale;
       if(isCanvas) mult+=cfg.canvas_bonus;
       if(isLandmark) bonus+=cfg.landmark_bonus;
-      if(nozzle>0&&step===45&&!isLandmark){ nozzle--; cost+=cfg.nozzle_cost_mult*bet; mult*=2.0 }
+      // 噴頭不再改變當步倍率，改為兌現乘 1.5x
     }
   }
   let payout=0;
-  if(alive&&step>=1){ let total=mult+bonus; total=effectiveMult(total,bet,cfg); payout=total*bet }
+  if(alive&&step>=1){
+    let total=mult+bonus;
+    total=effectiveMult(total,bet,cfg);
+    payout = total * bet;
+    if(nozzleBuff) payout *= 1.5;
+  }
   return Math.max(0,payout-cost)
 }
 function simulateMany(params){
@@ -365,10 +387,10 @@ async function preciseAutoCalibrate(){
   const baseFail0=baseFailPct.map(x=>x/100); baseFail0.push(1-s50);
 
   const includeTailTune = $('chkAlsoTuneTail').checked;
-  const GEN=6, POP=14;           // 代數 / 母體
-  const simsCoarse=15000;        // 初期評估
-  const simsFine=120000;         // 最終精算
-  const mutate = (v,rate,lo,hi)=> clamp(v*(1+(Math.random()*2-1)*rate), lo, hi);
+  const GEN=6, POP=14;
+  const simsCoarse=15000;
+  const simsFine=120000;
+  const mutate = (v,rate,lo,hi)=> Math.max(lo, Math.min(hi, v*(1+(Math.random()*2-1)*rate)));
 
   let seed = {
     lam1:Number(getVal('inpLam1',defaultLam[0]))||defaultLam[0],
@@ -490,7 +512,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('btnReset').onclick=()=>{ loadDefaults96(); document.getElementById('advResult').innerHTML=''; document.getElementById('tblSpec').innerHTML=''; document.getElementById('calibKPI').innerHTML=''; };
   document.getElementById('btnReadme').onclick=openReadme;
   document.getElementById('btnCloseReadme').onclick=closeReadme;
-  // 開頁先跑一次，給使用者即時反饋
+  document.getElementById('btnTuneHelp').onclick = () => {
+    alert(
+      [
+        '勾選後，「進階自動校準」會同時調整：',
+        '• 尾段下限：≥45 步的最小失敗率下限',
+        '• 後段風險：40–49 步額外的絕對失敗率加成',
+        '• 倍率縮放：整條倍率曲線的全局縮放（reward_scale）',
+        '• 基準風險縮放：基準失敗率的全局縮放（base_fail_scale）',
+        '',
+        '※ 新規：精密工具(噴頭) 改為「兌現乘 1.5x」，是否購買由勾選框決定，成本=下注額×設定成本倍率。'
+      ].join('\n')
+    );
+  };
   runAdvanced();
 });
 </script>
