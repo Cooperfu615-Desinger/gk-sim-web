@@ -11,7 +11,7 @@ h1,h2,h3{margin:0 0 .5rem}.wrap{max-width:1180px;margin:24px auto;padding:0 16px
 .grid{display:grid;gap:16px}.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .row{display:flex;gap:12px;flex-wrap:wrap}label{display:block;font-weight:600;margin-bottom:6px;color:var(--sub)}
-input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:#var(--text)}
+input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--muted);background:#0d1326;color:var(--text) !important}
 textarea{min-height:110px;white-space:pre}button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#07111f;background:var(--accent);cursor:pointer}
 button.secondary{background:#263250;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px dashed var(--muted)}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
@@ -30,6 +30,9 @@ button.secondary{background:#263250;color:var(--text)}button.ghost{background:tr
 .inline-tags{display:flex;gap:8px;flex-wrap:wrap}
 .inline-tags .tag{padding:2px 10px;border-radius:999px;border:1px solid var(--muted);background:#1b223c;color:#c7d3ea}
 .help-btn{background:#263250;color:#cfe1ff;border:1px solid var(--muted);padding:4px 8px;border-radius:8px}
+/* 本局購買：單行清楚顯示 */
+.tool-options{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.tool-options label{display:flex;align-items:center;gap:8px;background:#1b223c;padding:6px 10px;border-radius:10px;border:1px solid var(--muted);cursor:pointer;margin:0;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -103,11 +106,12 @@ button.secondary{background:#263250;color:var(--text)}button.ghost{background:tr
       <div><label>最小失敗率 (≥45)</label><input id="inpMinFailAfter45" type="number" step="0.01" value="0.50" /></div>
     </div>
 
+    <!-- 重做：本局購買（單行清楚） -->
     <div class="row" style="margin-top:6px">
-      <label style="display:flex;align-items:center;gap:8px;margin:0">
-        <input type="checkbox" id="chkUseNozzle" />
-        <span class="muted">本局購買：精密工具(噴頭) → 兌現乘 <b>1.5x</b>（成本 = 下注額 × 噴頭成本）</span>
-      </label>
+      <h3 style="margin:0">本局購買</h3>
+      <div class="tool-options" style="width:100%">
+        <label for="chkUseNozzle"><input type="checkbox" id="chkUseNozzle" /> 精密工具(噴頭) → 兌現乘 <b>1.5x</b></label>
+      </div>
     </div>
 
     <div class="row" style="margin-top:10px">
@@ -210,10 +214,12 @@ function getVal(id, def=null){ const el=$(id); return el && 'value' in el? el.va
 function setVal(id, v){ const el=$(id); if(el && 'value' in el) el.value=v }
 function setHTML(id, html){ const el=$(id); if(el) el.innerHTML=html }
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const parseList=(t)=> String(t||'').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).map(Number);
+const parseList=(t)=> String(t||'').split(/[
+,]+/).map(s=>s.trim()).filter(Boolean).map(Number);
 function fmtPct(x){ return (100*Number(x)).toFixed(2)+'%' }
 function fmtMoney(x){ return '$'+Number(x).toFixed(2) }
-function toCSV(rows){ return rows.map(r=> r.map(v=> String(v)).join(',')).join('\n') }
+function toCSV(rows){ return rows.map(r=> r.map(v=> String(v)).join(',')).join('
+') }
 function download(name, text){ const blob=new Blob([text],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000) }
 function oddsScale(p, lam){ p=clamp(p,0,1-1e-12); const odds=p/(1-p); const o2=lam*odds; return clamp(o2/(1+o2),0,1) }
 function afterProbs(pFail){ const out=[]; let acc=1; for(const pf of pFail){ acc*=(1-pf); out.push(acc) } return out }
@@ -331,7 +337,6 @@ function simulateRound(bet,rewards,pFail,rng,cfg){
       step=next; mult=rewards[step-1]*cfg.reward_scale;
       if(isCanvas) mult+=cfg.canvas_bonus;
       if(isLandmark) bonus+=cfg.landmark_bonus;
-      // 噴頭不再改變當步倍率，改為兌現乘 1.5x
     }
   }
   let payout=0;
@@ -522,9 +527,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         '• 基準風險縮放：基準失敗率的全局縮放（base_fail_scale）',
         '',
         '※ 新規：精密工具(噴頭) 改為「兌現乘 1.5x」，是否購買由勾選框決定，成本=下注額×設定成本倍率。'
-      ].join('\n')
+      ].join('
+')
     );
   };
+  // 首次跑一次
   runAdvanced();
 });
 </script>
