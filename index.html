@@ -106,11 +106,14 @@ button.secondary{background:#263250;color:var(--text)}button.ghost{background:tr
       <div><label>最小失敗率 (≥45)</label><input id="inpMinFailAfter45" type="number" step="0.01" value="0.50" /></div>
     </div>
 
-    <!-- 重做：本局購買（單行清楚） -->
+    <!-- 本局購買（四個道具） -->
     <div class="row" style="margin-top:6px">
       <h3 style="margin:0">本局購買</h3>
       <div class="tool-options" style="width:100%">
-        <label for="chkUseNozzle"><input type="checkbox" id="chkUseNozzle" /> 精密工具(噴頭) → 兌現乘 <b>1.5x</b></label>
+        <label><input type="checkbox" id="chkShield" /> 防爆盾(把風) ×2.0</label>
+        <label><input type="checkbox" id="chkDrone" /> 聽診器(無人機) ×1.5</label>
+        <label><input type="checkbox" id="chkNozzle" /> 精密工具(噴頭) → 兌現乘 <b>1.5x</b></label>
+        <label><input type="checkbox" id="chkTemplate" /> 破解器(模版) ×0.3</label>
       </div>
     </div>
 
@@ -214,12 +217,10 @@ function getVal(id, def=null){ const el=$(id); return el && 'value' in el? el.va
 function setVal(id, v){ const el=$(id); if(el && 'value' in el) el.value=v }
 function setHTML(id, html){ const el=$(id); if(el) el.innerHTML=html }
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const parseList=(t)=> String(t||'').split(/[
-,]+/).map(s=>s.trim()).filter(Boolean).map(Number);
+const parseList=(t)=> String(t||'').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).map(Number);
 function fmtPct(x){ return (100*Number(x)).toFixed(2)+'%' }
 function fmtMoney(x){ return '$'+Number(x).toFixed(2) }
-function toCSV(rows){ return rows.map(r=> r.map(v=> String(v)).join(',')).join('
-') }
+function toCSV(rows){ return rows.map(r=> r.map(v=> String(v)).join(',')).join('\n') }
 function download(name, text){ const blob=new Blob([text],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000) }
 function oddsScale(p, lam){ p=clamp(p,0,1-1e-12); const odds=p/(1-p); const o2=lam*odds; return clamp(o2/(1+o2),0,1) }
 function afterProbs(pFail){ const out=[]; let acc=1; for(const pf of pFail){ acc*=(1-pf); out.push(acc) } return out }
@@ -243,7 +244,7 @@ function loadDefaults96(){
   setVal('inpLandmarkProb',defaultItems.landmark_prob); setVal('inpLandmarkFail',defaultItems.landmark_fail); setVal('inpLandmarkBonus',defaultItems.landmark_bonus);
   setVal('inpLookoutCost',defaultItems.lookout_cost_mult); setVal('inpDroneCost',defaultItems.drone_cost_mult); setVal('inpNozzleCost',defaultItems.nozzle_cost_mult); setVal('inpTemplateCost',defaultItems.template_cost_mult);
   setVal('inpPost40Bump',defaultItems.post40_abs_bump); setVal('inpMinFailAfter45',defaultItems.min_fail_after_45);
-  const chk=document.getElementById('chkUseNozzle'); if(chk) chk.checked=false;
+  const ids=['chkNozzle','chkShield','chkDrone','chkTemplate']; ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
 }
 
 // == base spec calibration ==
@@ -303,8 +304,14 @@ function getCfg(){ return {
   post40_abs_bump:Number(getVal('inpPost40Bump',defaultItems.post40_abs_bump))||defaultItems.post40_abs_bump,
   min_fail_after_45:Number(getVal('inpMinFailAfter45',defaultItems.min_fail_after_45))||defaultItems.min_fail_after_45,
   reward_scale:1.0, base_fail_scale:1.0,
-  use_nozzle_cashout_x15: !!document.getElementById('chkUseNozzle')?.checked
+
+  // 本局購買
+  use_shield: !!document.getElementById('chkShield')?.checked,
+  use_drone: !!document.getElementById('chkDrone')?.checked,
+  use_nozzle_cashout_x15: !!document.getElementById('chkNozzle')?.checked,
+  use_template: !!document.getElementById('chkTemplate')?.checked,
 }}
+
 function applyZoneLambda(baseFail,lam1,lam2,lam3,cfg){
   const p=baseFail.map(x=> Math.max(0, Math.min(1, x*cfg.base_fail_scale)));
   for(let i=39;i<=48;i++) p[i]=Math.max(0, Math.min(1, p[i]+cfg.post40_abs_bump));
@@ -314,24 +321,48 @@ function applyZoneLambda(baseFail,lam1,lam2,lam3,cfg){
 }
 function effectiveMult(mult,bet,cfg){ const caps=[cfg.money_cap/bet, cfg.mult_cap, cfg.alpha_by_bet*(cfg.money_cap/bet)]; return Math.min(mult,...caps) }
 function bestStopNoItems(rewards,pFail,bet,cfg){ const cap=effectiveMult(1e9,bet,cfg); const {ev}=evCurve(rewards,pFail,cap); return argmax(ev)+1 }
+
 function simulateRound(bet,rewards,pFail,rng,cfg){
-  let lookout=1,drone=1,template=1; let cost=0,step=0,alive=true,mult=1.0,bonus=0.0,droneBuf=0;
-  const nozzleBuff = cfg.use_nozzle_cashout_x15;
-  if(nozzleBuff){ cost += cfg.nozzle_cost_mult * bet; }
+  // 根據是否購買，初始化道具庫存與成本
+  let lookout = cfg.use_shield ? 1 : 0;
+  let drone = cfg.use_drone ? 1 : 0;
+  let template = cfg.use_template ? 1 : 0;
+  let cost = 0, step = 0, alive = true, mult = 1.0, bonus = 0.0, droneBuf = 0;
+
+  // 先扣「前置購買」的成本：噴頭、把風（設計：購買即收費）
+  if(cfg.use_nozzle_cashout_x15){ cost += cfg.nozzle_cost_mult * bet; }
+  if(cfg.use_shield){ cost += cfg.lookout_cost_mult * bet; }
 
   const stop=bestStopNoItems(rewards,pFail,bet,cfg);
-  while(alive&&step<stop){
+
+  while(alive && step<stop){
+    // 若購買了「破解器」，一次性安全推進最多 5 步（不觸發失敗檢查；不吃加成），再繼續正常流程
+    if(template>0){
+      const push = Math.min(5, stop - step);
+      if(push>0){
+        cost += cfg.template_cost_mult * bet; // 使用時收費
+        step += push;
+        mult = rewards[step-1] * cfg.reward_scale; // 直接到達對應倍率
+        template = 0; // 只用一次
+        continue; // 回到迴圈檢查是否已達到目標 stop
+      }
+    }
+
     const next=step+1;
     const isCanvas=(next<=35)&&(rng()<cfg.canvas_prob);
     const isLandmark=(next>=28&&next<=44)&&(rng()<cfg.landmark_prob);
 
-    if(drone>0&&(next===41||next===43||next===45)&&!isLandmark){ droneBuf=1; drone--; cost+=cfg.drone_cost_mult*bet }
+    // 無人機：在特定關鍵步（41/43/45）為當步提供「絕對安全」（若有購買、尚未使用、且非地標）
+    if(drone>0 && (next===41||next===43||next===45) && !isLandmark){
+      droneBuf=1; drone--; /* 使用才收費 */ cost+=cfg.drone_cost_mult*bet;
+    }
+
     const stepFail=isLandmark?cfg.landmark_fail:pFail[next-1];
     const effFail=(droneBuf===1&&!isLandmark)?0.0:stepFail;
     if(droneBuf===1&&!isLandmark) droneBuf=0;
 
     if(rng()<effFail){
-      if(lookout>0){lookout--; cost+=cfg.lookout_cost_mult*bet}
+      if(lookout>0){lookout--; /* 把風已經於購買時收費，不再額外收費 */}
       else { alive=false; break }
     } else {
       step=next; mult=rewards[step-1]*cfg.reward_scale;
@@ -339,15 +370,17 @@ function simulateRound(bet,rewards,pFail,rng,cfg){
       if(isLandmark) bonus+=cfg.landmark_bonus;
     }
   }
+
   let payout=0;
   if(alive&&step>=1){
     let total=mult+bonus;
     total=effectiveMult(total,bet,cfg);
     payout = total * bet;
-    if(nozzleBuff) payout *= 1.5;
+    if(cfg.use_nozzle_cashout_x15) payout *= 1.5; // 兌現增益
   }
   return Math.max(0,payout-cost)
 }
+
 function simulateMany(params){
   const {bet,sims,rewards,baseFail,lam1,lam2,lam3,cfg}=params;
   const pFail=applyZoneLambda(baseFail,lam1,lam2,lam3,cfg);
@@ -356,6 +389,7 @@ function simulateMany(params){
   const mean=sum/sims; const std=Math.sqrt(Math.max(0,sum2/sims-mean*mean)); const rtp=sum/(bet*sims);
   return {rtp,mean,std}
 }
+
 function runAdvanced(){
   const bet=Number(getVal('inpBet',1))||1;
   const sims=Number(getVal('inpSims',20000))||20000;
@@ -526,9 +560,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
         '• 倍率縮放：整條倍率曲線的全局縮放（reward_scale）',
         '• 基準風險縮放：基準失敗率的全局縮放（base_fail_scale）',
         '',
-        '※ 新規：精密工具(噴頭) 改為「兌現乘 1.5x」，是否購買由勾選框決定，成本=下注額×設定成本倍率。'
-      ].join('
-')
+        '※ 新規：精密工具(噴頭) 改為「兌現乘 1.5x」，是否購買由勾選框決定，成本=下注額×設定成本倍率。',
+        '※ 本局購買：',
+        '  - 防爆盾(把風)：購買即收費，抵擋一次失敗。',
+        '  - 聽診器(無人機)：使用時收費；在步 41/43/45 提供一次絕對安全（非地標）。',
+        '  - 破解器(模版)：使用時收費；立即安全前進 5 步（不觸發失敗檢查）。'
+      ].join('\n')
     );
   };
   // 首次跑一次
